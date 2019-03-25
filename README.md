@@ -1,13 +1,13 @@
 # Adb
 
-**TODO: Add description**
+Egyenlore semmi.
 
 ## Installation
 
 ```elixir
 def deps do
   [
-    {:adb, "~> 0.1.0"},
+    {:adb, git: "git@github.com:javobalazs/adb.git", "~> 0.1.0"},
   ]
 end
 ```

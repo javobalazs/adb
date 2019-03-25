@@ -7,14 +7,22 @@ defmodule Adb.MixProject do
       app: :adb,
       version: @vsn,
       elixir: "~> 1.8",
+      package: package(),
       start_permanent: Mix.env() == :prod,
       deps: deps()
+    ]
+  end
+
+  defp package do
+    [
+      licenses: ["BEER-WARE"]
     ]
   end
 
   # Run "mix help compile.app" to learn about applications.
   def application do
     [
+      mod: {App, []},
       extra_applications: [:logger]
     ]
   end

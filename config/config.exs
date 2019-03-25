@@ -14,3 +14,5 @@ config :logger, :error_log,
 config :logger, :console,
   format: "$date $time $metadata[$level] $levelpad$message\n",
   metadata: [:line]
+
+config :tzdata, :data_dir, "./tzdata"
