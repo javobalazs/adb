@@ -1,6 +1,6 @@
 defmodule Adb.MixProject do
   use Mix.Project
-  @vsn "0.1.0"
+  @vsn "0.1.1"
 
   def project do
     [
@@ -22,7 +22,6 @@ defmodule Adb.MixProject do
   # Run "mix help compile.app" to learn about applications.
   def application do
     [
-      mod: {App, []},
       extra_applications: [:logger]
     ]
   end
