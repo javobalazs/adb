@@ -217,13 +217,33 @@ defmodule Stage do
   end
 
   @doc """
-  Enyhen problemas, csak diff1 van.
+  Enyhen problemas, ha `lst` nem legalabb kettagu, mert akkor a `val`-bol kene kiszedni az ertekeket.
+
+  TODO `merge`: `val`-bol kiszedni az elso (ket?) szintet, ha `lst` nulla vagy egytagu.
   """
-  @spec merge(t, [any], any) :: t
-  def merge(s, lst, val) do
-    internal1 = Mlmap.merdate(s.internal1, lst, val) |> Mlmap.filter()
+  @spec merge(t, [any], any, iden) :: t
+  def merge(s, lst, val, iden) do
+    internal1 = Mlmap.smerdate(s.internal1, lst, val)
     stage1 = Mlmap.merdate(s.stage1, lst, val)
-    %{s | internal1: internal1, stage1: stage1}
+
+    case lst do
+      [map, key | rest] ->
+        lst12 = [{map, key} | rest]
+        internal12 = Mlmap.smerdate(s.internal12, lst12, val)
+        stage12 = Mlmap.merdate(s.stage12, lst12, val)
+
+        if iden != nil do
+          lst2 = [key, map | rest]
+          internal2 = Mlmap.smerdate(s.internal2, lst2, val)
+          stage2 = Mlmap.merdate(s.stage2, lst2, val)
+          %{s | internal1: internal1, stage1: stage1, internal2: internal2, stage2: stage2, internal12: internal12, stage12: stage12}
+        else
+          %{s | internal1: internal1, stage1: stage1, internal12: internal12, stage12: stage12}
+        end
+
+      _ ->
+        %{s | internal1: internal1, stage1: stage1}
+    end
   end
 
   # defmodule
