@@ -15,7 +15,7 @@ send :tdb, ["data_update", "segg", 2, %{"id" => "14146", "visible" => 0, "ext" =
 ```elixir
 def deps do
   [
-    {:adb, git: "git@github.com:javobalazs/adb.git", tag: "0.1.1"},
+    {:adb, git: "git@github.com:javobalazs/adb.git", tag: "0.1.2"},
   ]
 end
 ```
