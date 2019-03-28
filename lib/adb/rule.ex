@@ -35,7 +35,12 @@ defmodule Rule do
           destructor: functionx | nil
         }
 
-  # Nincs checkin, eleve olyan formaban varjuk el az inputot, hogy insert lehessen, es onnan cpu-szabalyokkal mar meg lehet csinalni a checkin-t.
+  @typedoc """
+  Nincs checkin, eleve olyan formaban varjuk el az inputot, hogy insert lehessen, es onnan cpu-szabalyokkal mar meg lehet csinalni a checkin-t.
+
+  - `:cpu`: az igazi uzleti logika.
+  - `:checkout`: az output elkeszitese, illetve cleanup.
+  """
   @type burst :: :cpu | :checkout
   @type binding :: %{String.t() => String.t()}
   @type binding_list :: [{String.t(), String.t()}]
