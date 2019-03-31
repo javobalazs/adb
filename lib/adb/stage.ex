@@ -216,34 +216,71 @@ defmodule Stage do
     %{s | internal1: internal1, stage1: stage1, internal2: internal2, stage2: stage2, internal12: internal12, stage12: stage12}
   end
 
-  @doc """
-  Enyhen problemas, ha `lst` nem legalabb kettagu, mert akkor a `val`-bol kene kiszedni az ertekeket.
-
-  TODO `merge`: `val`-bol kiszedni az elso (ket?) szintet, ha `lst` nulla vagy egytagu.
-  """
-  @spec merge(t, [any], any, iden) :: t
+  @spec merge(t, [any], Map.t(), iden) :: t
   def merge(s, lst, val, iden) do
-    internal1 = Mlmap.smerdate(s.internal1, lst, val)
-    stage1 = Mlmap.merdate(s.stage1, lst, val)
+    {l1, l2} =
+      case lst do
+        [map, key | rest] ->
+          {[], [{map, key, rest, val, iden}]}
 
-    case lst do
-      [map, key | rest] ->
-        lst12 = [{map, key} | rest]
-        internal12 = Mlmap.smerdate(s.internal12, lst12, val)
-        stage12 = Mlmap.merdate(s.stage12, lst12, val)
+        [map] ->
+          Enum.reduce(val, {[], []}, fn {key, v}, {acc1, acc2} ->
+            case v do
+              %{__struct__: _} -> {[{[map, key], v, iden} | acc1], acc2}
+              x when is_map(x) -> {acc1, [{map, key, [], v, iden} | acc2]}
+              _ -> {[{[map, key], v, iden} | acc1], acc2}
+            end
+          end)
+
+        _ ->
+          Enum.reduce(val, {[], []}, fn {map, v2}, {acc1, acc2} ->
+            case v2 do
+              %{__struct__: _} ->
+                {[{[map], v2, iden} | acc1], acc2}
+
+              x when is_map(x) ->
+                Enum.reduce(v2, {acc1, acc2}, fn {key, v}, {acc1x, acc2x} ->
+                  case v do
+                    %{__struct__: _} -> {[{[map, key], v, iden} | acc1x], acc2x}
+                    x when is_map(x) -> {acc1x, [{map, key, [], v, iden} | acc2x]}
+                    _ -> {[{[map, key], v, iden} | acc1x], acc2x}
+                  end
+                end)
+
+              _ ->
+                {[{[map], v2, iden} | acc1], acc2}
+            end
+          end)
+      end
+
+    s = put(s, l1)
+    s = merge_aux(s, l2)
+    s
+  end
+
+  @spec merge_aux(t, [{any, any, [any], Map.t(), iden}]) :: t
+  def merge_aux(s, ops) do
+    {internal1, stage1, internal2, stage2, internal12, stage12} =
+      Enum.reduce(ops, {s.internal1, s.stage1, s.internal2, s.stage2, s.internal12, s.stage12}, fn {map, key, lst, val, iden}, {internal1, stage1, internal2, stage2, internal12, stage12} ->
+        ulst = [map, key | lst]
+        internal1 = Mlmap.smerdate(internal1, ulst, val)
+        stage1 = Mlmap.merdate(stage1, ulst, val)
+
+        lst12 = [{map, key} | lst]
+        internal12 = Mlmap.smerdate(internal12, lst12, val)
+        stage12 = Mlmap.merdate(stage12, lst12, val)
 
         if iden != nil do
-          lst2 = [key, map | rest]
-          internal2 = Mlmap.smerdate(s.internal2, lst2, val)
-          stage2 = Mlmap.merdate(s.stage2, lst2, val)
-          %{s | internal1: internal1, stage1: stage1, internal2: internal2, stage2: stage2, internal12: internal12, stage12: stage12}
+          lst2 = [key, map | lst]
+          internal2 = Mlmap.smerdate(internal2, lst2, val)
+          stage2 = Mlmap.merdate(stage2, lst2, val)
+          {internal1, stage1, internal2, stage2, internal12, stage12}
         else
-          %{s | internal1: internal1, stage1: stage1, internal12: internal12, stage12: stage12}
+          {internal1, stage1, internal2, stage2, internal12, stage12}
         end
+      end)
 
-      _ ->
-        %{s | internal1: internal1, stage1: stage1}
-    end
+    %{s | internal1: internal1, stage1: stage1, internal2: internal2, stage2: stage2, internal12: internal12, stage12: stage12}
   end
 
   # defmodule
