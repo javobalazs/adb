@@ -5,9 +5,13 @@ Egyenlore semmi.
 ## Example session
 
 ```elixir
-send :tdb, ["register", "segg", 0]
-send :tdb, ["lock", "segg", 1, ["14146"]]
-send :tdb, ["data_update", "segg", 2, %{"id" => "14146", "visible" => 0, "ext" => %{"parent_id" => "10001"}}]
+R24Core.start_link :tdb
+send :tdb, ["register", "segg", 0, 0]
+send :tdb, ["lock", "segg", 1, 0, "u0", ["14146"]]
+send :tdb, ["data", "segg", 2, 1, "u1", %{  "children" => [],  "ext" => %{"parent_id" => "10006"},  "id" => "14146",    "visible" => 0}]
+send :tdb, ["unlock", "segg", 3, 2, "u2", [ "14146"]]
+send :tdb, ["register", "segg", 4, 3]
+send :tdb, ["register", "segg", 4, 4]
 ```
 
 ## Installation
@@ -15,7 +19,7 @@ send :tdb, ["data_update", "segg", 2, %{"id" => "14146", "visible" => 0, "ext" =
 ```elixir
 def deps do
   [
-    {:adb, git: "git@github.com:javobalazs/adb.git", tag: "0.1.2"},
+    {:adb, git: "git@github.com:javobalazs/adb.git", tag: "0.1.3"},
   ]
 end
 ```
