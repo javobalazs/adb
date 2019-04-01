@@ -50,13 +50,24 @@ defmodule Mlmap do
         val
 
       [key | rest] ->
-        upd =
-          case Map.fetch(s, key) do
-            {:ok, map} -> update(map, rest, val)
-            :error -> make_from_lst(rest, val)
-          end
+        case s do
+          %{__struct__: _} ->
+            upd = make_from_lst(rest, val)
+            %{key => upd}
 
-        Map.put(s, key, upd)
+          x when is_map(x) ->
+            upd =
+              case Map.fetch(s, key) do
+                {:ok, map} -> update(map, rest, val)
+                :error -> make_from_lst(rest, val)
+              end
+
+            Map.put(s, key, upd)
+
+          _ ->
+            upd = make_from_lst(rest, val)
+            %{key => upd}
+        end
     end
   end
 
@@ -67,13 +78,24 @@ defmodule Mlmap do
         merge(s, val)
 
       [key | rest] ->
-        upd =
-          case Map.fetch(s, key) do
-            {:ok, map} -> merdate(map, rest, val)
-            :error -> make_from_lst(rest, val)
-          end
+        case s do
+          %{__struct__: _} ->
+            upd = make_from_lst(rest, val)
+            %{key => upd}
 
-        Map.put(s, key, upd)
+          x when is_map(x) ->
+            upd =
+              case Map.fetch(s, key) do
+                {:ok, map} -> merdate(map, rest, val)
+                :error -> make_from_lst(rest, val)
+              end
+
+            Map.put(s, key, upd)
+
+          _ ->
+            upd = make_from_lst(rest, val)
+            %{key => upd}
+        end
     end
   end
 
@@ -109,11 +131,20 @@ defmodule Mlmap do
         val
 
       [key | rest] ->
-        case Map.fetch(s, key) do
-          {:ok, map} -> supdate_aux(map, rest, val)
-          :error -> smake_from_lst(rest, val)
+        case s do
+          %{__struct__: _} ->
+            smake_from_lst(rest, val) |> evaluate_upd(%{}, key)
+
+          x when is_map(x) ->
+            case Map.fetch(s, key) do
+              {:ok, map} -> supdate_aux(map, rest, val)
+              :error -> smake_from_lst(rest, val)
+            end
+            |> evaluate_upd(s, key)
+
+          _ ->
+            smake_from_lst(rest, val) |> evaluate_upd(%{}, key)
         end
-        |> evaluate_upd(s, key)
     end
   end
 
@@ -129,15 +160,24 @@ defmodule Mlmap do
   def smerdate_aux(s, lst, val) do
     case lst do
       [] ->
-        res = merge(s, val) |> filter()
+        res = merge(s, val) |> normalize()
         if res == %{} and (val != %{} or s != %{}), do: :undefined, else: res
 
       [key | rest] ->
-        case Map.fetch(s, key) do
-          {:ok, map} -> smerdate_aux(map, rest, val)
-          :error -> smake_from_lst(rest, val)
+        case s do
+          %{__struct__: _} ->
+            smake_from_lst(rest, val) |> evaluate_upd(%{}, key)
+
+          x when is_map(x) ->
+            case Map.fetch(s, key) do
+              {:ok, map} -> smerdate_aux(map, rest, val)
+              :error -> smake_from_lst(rest, val)
+            end
+            |> evaluate_upd(s, key)
+
+          _ ->
+            smake_from_lst(rest, val) |> evaluate_upd(%{}, key)
         end
-        |> evaluate_upd(s, key)
     end
   end
 
@@ -174,8 +214,11 @@ defmodule Mlmap do
   ##              ##        ##  ##          ##    ##       ##    ##               ##
   ######          ##       #### ########    ##    ######## ##     ##          ######
 
-  @spec filter(t) :: t
-  def filter(s) do
+  @doc """
+  Egy diff alkalmazasa utani allapot, kiszuri a felesleges dolgokat.
+  """
+  @spec normalize(t) :: t
+  def normalize(s) do
     s
     |> Enum.map(fn {k, v} ->
       case v do
@@ -186,9 +229,12 @@ defmodule Mlmap do
           if Map.size(v) == 0 do
             {k, %{}}
           else
-            v = filter(v)
+            v = normalize(v)
             if v == %{}, do: :undefined, else: {k, v}
           end
+
+        :undefined ->
+          :undefined
 
         _ ->
           {k, v}
@@ -198,8 +244,11 @@ defmodule Mlmap do
     |> Map.new()
   end
 
-  @spec filter(t, t) :: t
-  def filter(s, s2) do
+  @doc """
+  Egy diff-et optimalizal.
+  """
+  @spec filter(t, t, any) :: t
+  def filter(s, s2, meta \\ :undefined) do
     s
     |> Enum.map(fn {k, v} ->
       case Map.fetch(s2, k) do
@@ -217,13 +266,16 @@ defmodule Mlmap do
                   if Map.size(v) == 0 do
                     {k, %{}}
                   else
-                    v = filter(v, v2)
+                    v = filter(v, v2, meta)
                     if v == %{}, do: :undefined, else: {k, v}
                   end
 
                 _ ->
                   {k, v}
               end
+
+            :undefined ->
+              if meta == v2, do: :undefined, else: {k, meta}
 
             _ ->
               if v == v2, do: :undefined, else: {k, v}
