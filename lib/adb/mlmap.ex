@@ -240,5 +240,215 @@ defmodule Mlmap do
     |> Map.new()
   end
 
+  ######          ##     ##    ###    ########        ## ########  ######## ########  ##     ##  ######  ########          ######
+  ##              ###   ###   ## ##   ##     ##      ##  ##     ## ##       ##     ## ##     ## ##    ## ##                    ##
+  ##              #### ####  ##   ##  ##     ##     ##   ##     ## ##       ##     ## ##     ## ##       ##                    ##
+  ##              ## ### ## ##     ## ########     ##    ########  ######   ##     ## ##     ## ##       ######                ##
+  ##              ##     ## ######### ##          ##     ##   ##   ##       ##     ## ##     ## ##       ##                    ##
+  ##              ##     ## ##     ## ##         ##      ##    ##  ##       ##     ## ##     ## ##    ## ##                    ##
+  ######          ##     ## ##     ## ##        ##       ##     ## ######## ########   #######   ######  ########          ######
+
+  @spec map(t, [any], (any -> any)) :: [any]
+  def map(s, lst, fnc), do: get(s, lst, %{}) |> Enum.map(fnc) |> Enum.filter(fn x -> x != :bump end)
+
+  @spec reduce(t, [any], a, (any, a -> a)) :: a when a: var
+  def reduce(s, lst, acc, fnc), do: get(s, lst, %{}) |> Enum.reduce(acc, fnc)
+
+  @spec reduce_while(t, [any], a, (any, a -> {:cont, a} | {:halt, a})) :: a when a: var
+  def reduce_while(s, lst, acc, fnc), do: get(s, lst, %{}) |> Enum.reduce_while(acc, fnc)
+
+  @type nondeleted :: :unchanged | :inserted | :changed
+  @type event :: :deleted | nondeleted
+  @type fullfun :: (key :: any, event :: event, old :: any, new :: any -> any | :bump)
+  @type mapfun :: (key :: any, event :: nondeleted, old :: any, new :: any -> any | :bump)
+  @type redfun(a) :: (key :: any, event :: event, old :: any, new :: any, acc :: a -> a)
+  @type red_while_fun(a) :: (key :: any, event :: event, old :: any, new :: any, acc :: a -> {:cont, a} | {:halt, a})
+
+  @spec full(t, t, t, [any], fullfun) :: [any]
+  def full(orig, diff, last, lst, fnc) do
+    orig = get(orig, lst, %{})
+    diff = get(diff, lst, %{})
+    last = get(last, lst, %{})
+
+    case last do
+      %{__struct__: _} ->
+        []
+
+      x when is_map(x) ->
+        first =
+          Enum.map(last, fn {k, v} ->
+            {event, ori} =
+              case Map.fetch(diff, k) do
+                :error ->
+                  {:same, v}
+
+                {:ok, _df} ->
+                  case Map.fetch(orig, k) do
+                    :error -> {:inserted, :undefined}
+                    {:ok, xori} -> {:changed, xori}
+                  end
+              end
+
+            fnc.(k, event, ori, v)
+          end)
+          |> Enum.filter(fn v -> v != :bump end)
+
+        second =
+          diff
+          |> Enum.filter(fn {_k, v} -> v == :undefined end)
+          |> Enum.reduce([], fn {k, _}, acc ->
+            ori = Map.get(orig, k)
+            [fnc.(k, :deleted, ori, :undefined) | acc]
+          end)
+          |> Enum.filter(fn v -> v != :bump end)
+
+        Enum.reverse(second, first)
+
+      _ ->
+        []
+    end
+  end
+
+  @spec track(t, t, [any], mapfun) :: [any]
+  def track(orig, diff, lst, fnc) do
+    orig = get(orig, lst, %{})
+    diff = get(diff, lst, %{})
+
+    case diff do
+      %{__struct__: _} ->
+        []
+
+      x when is_map(x) ->
+        Enum.map(diff, fn {k, v} ->
+          {event, ori} =
+            case v do
+              :undefined ->
+                {:deleted, Map.get(orig, k)}
+
+              _ ->
+                case Map.fetch(orig, k) do
+                  :error -> {:inserted, :undefined}
+                  {:ok, xori} -> {:changed, xori}
+                end
+            end
+
+          fnc.(k, event, ori, v)
+        end)
+        |> Enum.filter(fn v -> v != :bump end)
+
+      _ ->
+        []
+    end
+  end
+
+  @spec track_reduce(t, t, [any], a, redfun(a)) :: a when a: var
+  def track_reduce(orig, diff, lst, acc, fnc) do
+    orig = get(orig, lst, %{})
+    diff = get(diff, lst, %{})
+
+    case diff do
+      %{__struct__: _} ->
+        acc
+
+      x when is_map(x) ->
+        Enum.reduce(diff, acc, fn {k, v}, acc ->
+          {event, ori} =
+            case v do
+              :undefined ->
+                {:deleted, Map.get(orig, k)}
+
+              _ ->
+                case Map.fetch(orig, k) do
+                  :error -> {:inserted, :undefined}
+                  {:ok, xori} -> {:changed, xori}
+                end
+            end
+
+          fnc.(k, event, ori, v, acc)
+        end)
+
+      _ ->
+        acc
+    end
+  end
+
+  @spec track_reduce_while(t, t, [any], a, red_while_fun(a)) :: a when a: var
+  def track_reduce_while(orig, diff, lst, acc, fnc) do
+    orig = get(orig, lst, %{})
+    diff = get(diff, lst, %{})
+
+    case diff do
+      %{__struct__: _} ->
+        acc
+
+      x when is_map(x) ->
+        Enum.reduce_while(diff, acc, fn {k, v}, acc ->
+          {event, ori} =
+            case v do
+              :undefined ->
+                {:deleted, Map.get(orig, k)}
+
+              _ ->
+                case Map.fetch(orig, k) do
+                  :error -> {:inserted, :undefined}
+                  {:ok, xori} -> {:changed, xori}
+                end
+            end
+
+          fnc.(k, event, ori, v, acc)
+        end)
+
+      _ ->
+        acc
+    end
+  end
+
+  # @spec reduce(t, [any], any, (key :: any, event :: event, old :: any, new :: any, acc :: a -> {:cont, a} | {:halt, a}) :: a when a: var
+  # def reduce(s, lst, acc, fnc) do
+  #   orig = getm(s, :orig1, lst, %{})
+  #   diff = getm(s, :diff1, lst, %{})
+  #   start = getm(s, :start1, lst, %{})
+  #
+  #   case start do
+  #     %{__struct__: _} ->
+  #       acc
+  #
+  #     x when is_map(x) ->
+  #       first =
+  #         Enum.reduce_while(start, fn {k, v} ->
+  #           {event, ori} =
+  #             case Map.fetch(diff, k) do
+  #               :error ->
+  #                 {:same, v}
+  #
+  #               {:ok, _df} ->
+  #                 case Map.fetch(orig, k) do
+  #                   :error -> {:inserted, :undefined}
+  #                   {:ok, xori} -> {:changed, xori}
+  #                 end
+  #             end
+  #
+  #           fnc.(k, event, ori, v)
+  #         end)
+  #         |> Enum.filter(fn v -> v != :skip end)
+  #         |> Enum.map(fn {_, v} -> v end)
+  #
+  #       second =
+  #         diff
+  #         |> Enum.filter(fn {_k, v} -> v == :undefined end)
+  #         |> Enum.reduce([], fn {k, _}, acc ->
+  #           ori = Map.get(orig, k)
+  #           [fnc.(k, :deleted, ori, :undefined) | acc]
+  #         end)
+  #         |> Enum.filter(fn v -> v != :skip end)
+  #         |> Enum.map(fn {_, v} -> v end)
+  #
+  #       Enum.reverse(second, first)
+  #
+  #     _ ->
+  #       acc
+  #   end
+  # end
+
   # defmodule
 end

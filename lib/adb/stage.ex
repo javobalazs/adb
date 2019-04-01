@@ -150,6 +150,14 @@ defmodule Stage do
     Mlmap.get(mp, lst, defa)
   end
 
+  ######          ########  ##     ## ########          ######
+  ##              ##     ## ##     ##    ##                 ##
+  ##              ##     ## ##     ##    ##                 ##
+  ##              ########  ##     ##    ##                 ##
+  ##              ##        ##     ##    ##                 ##
+  ##              ##        ##     ##    ##                 ##
+  ######          ##         #######     ##             ######
+
   @spec put(t, [any], any, iden) :: t
   def put(s, lst, val, iden \\ nil) do
     # orig -diff-> start -stage-> internal
@@ -215,6 +223,14 @@ defmodule Stage do
 
     %{s | internal1: internal1, stage1: stage1, internal2: internal2, stage2: stage2, internal12: internal12, stage12: stage12}
   end
+
+  ######          ##     ## ######## ########   ######   ########          ######
+  ##              ###   ### ##       ##     ## ##    ##  ##                    ##
+  ##              #### #### ##       ##     ## ##        ##                    ##
+  ##              ## ### ## ######   ########  ##   #### ######                ##
+  ##              ##     ## ##       ##   ##   ##    ##  ##                    ##
+  ##              ##     ## ##       ##    ##  ##    ##  ##                    ##
+  ######          ##     ## ######## ##     ##  ######   ########          ######
 
   @spec merge(t, [any], Map.t(), iden) :: t
   def merge(s, lst, val, iden) do
@@ -282,6 +298,91 @@ defmodule Stage do
 
     %{s | internal1: internal1, stage1: stage1, internal2: internal2, stage2: stage2, internal12: internal12, stage12: stage12}
   end
+
+  ######          ##     ##    ###    ########        ## ########  ######## ########  ##     ##  ######  ########          ######
+  ##              ###   ###   ## ##   ##     ##      ##  ##     ## ##       ##     ## ##     ## ##    ## ##                    ##
+  ##              #### ####  ##   ##  ##     ##     ##   ##     ## ##       ##     ## ##     ## ##       ##                    ##
+  ##              ## ### ## ##     ## ########     ##    ########  ######   ##     ## ##     ## ##       ######                ##
+  ##              ##     ## ######### ##          ##     ##   ##   ##       ##     ## ##     ## ##       ##                    ##
+  ##              ##     ## ##     ## ##         ##      ##    ##  ##       ##     ## ##     ## ##    ## ##                    ##
+  ######          ##     ## ##     ## ##        ##       ##     ## ######## ########   #######   ######  ########          ######
+
+  @spec mapm(t, mapname, [any], (any -> any)) :: [any]
+  def mapm(s, mapname, lst, fnc), do: Map.get(s, mapname) |> Mlmap.map(lst, fnc)
+
+  @spec map(t, [any], (any -> any)) :: [any]
+  def map(s, lst, fnc), do: mapm(s, :internal1, lst, fnc)
+
+  @spec reducem(t, mapname, [any], a, (any, a -> a)) :: a when a: var
+  def reducem(s, mapname, lst, acc, fnc), do: Map.get(s, mapname) |> Mlmap.reduce(lst, acc, fnc)
+
+  @spec reduce(t, [any], a, (any, a -> a)) :: a when a: var
+  def reduce(s, lst, acc, fnc), do: reducem(s, :internal1, lst, acc, fnc)
+
+  @spec reducem_while(t, mapname, [any], a, (any, a -> {:cont, a} | {:halt, a})) :: a when a: var
+  def reducem_while(s, mapname, lst, acc, fnc), do: Map.get(s, mapname) |> Mlmap.reduce_while(lst, acc, fnc)
+
+  @spec reduce_while(t, [any], a, (any, a -> {:cont, a} | {:halt, a})) :: a when a: var
+  def reduce_while(s, lst, acc, fnc), do: reducem_while(s, :internal1, lst, acc, fnc)
+
+  @spec full(t, [any], Mlmap.fulfun) :: [any]
+  def full(s, lst, fnc), do: Mlmap.full(s.orig1, s.diff1, s.start1, lst, fnc)
+
+  @spec track(t, [any], Mlmap.mapfun) :: [any]
+  def track(s, lst, fnc), do: Mlmap.track(s.orig1, s.diff1, lst, fnc)
+
+  @spec track_reduce(t, [any], a, Mlmap.redfun(a)) :: a when a: var
+  def track_reduce(s, lst, acc, fnc), do: Mlmap.track_reduce(s.orig1, s.diff1, lst, acc, fnc)
+
+  @spec track_reduce_while(t, [any], a, Mlmap.red_while_fun(a)) :: a when a: var
+  def track_reduce_while(s, lst, acc, fnc), do: Mlmap.track_reduce_while(s.orig1, s.diff1, lst, acc, fnc)
+
+  # @spec reduce(t, [any], any, (key :: any, event :: event, old :: any, new :: any, acc :: a -> {:cont, a} | {:halt, a}) :: a when a: var
+  # def reduce(s, lst, acc, fnc) do
+  #   orig = getm(s, :orig1, lst, %{})
+  #   diff = getm(s, :diff1, lst, %{})
+  #   start = getm(s, :start1, lst, %{})
+  #
+  #   case start do
+  #     %{__struct__: _} ->
+  #       acc
+  #
+  #     x when is_map(x) ->
+  #       first =
+  #         Enum.reduce_while(start, fn {k, v} ->
+  #           {event, ori} =
+  #             case Map.fetch(diff, k) do
+  #               :error ->
+  #                 {:same, v}
+  #
+  #               {:ok, _df} ->
+  #                 case Map.fetch(orig, k) do
+  #                   :error -> {:inserted, :undefined}
+  #                   {:ok, xori} -> {:changed, xori}
+  #                 end
+  #             end
+  #
+  #           fnc.(k, event, ori, v)
+  #         end)
+  #         |> Enum.filter(fn v -> v != :skip end)
+  #         |> Enum.map(fn {_, v} -> v end)
+  #
+  #       second =
+  #         diff
+  #         |> Enum.filter(fn {_k, v} -> v == :undefined end)
+  #         |> Enum.reduce([], fn {k, _}, acc ->
+  #           ori = Map.get(orig, k)
+  #           [fnc.(k, :deleted, ori, :undefined) | acc]
+  #         end)
+  #         |> Enum.filter(fn v -> v != :skip end)
+  #         |> Enum.map(fn {_, v} -> v end)
+  #
+  #       Enum.reverse(second, first)
+  #
+  #     _ ->
+  #       acc
+  #   end
+  # end
 
   # defmodule
 end
