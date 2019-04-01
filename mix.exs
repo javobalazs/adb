@@ -33,6 +33,7 @@ defmodule Adb.MixProject do
       # {:dep_from_git, git: "https://github.com/elixir-lang/my_dep.git", tag: "0.1.0"},
       # {:cbt, git: "git@github.com:javobalazs/cbt.git", tag: "1.2.3"},
       {:timex, "~> 3.5"},
+      {:tzdata, "~> 0.5"},
       {:logger_file_backend, "~> 0.0.10"}
     ]
   end
