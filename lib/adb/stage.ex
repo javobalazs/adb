@@ -4,6 +4,9 @@ alias ADB.Rule
 
 defmodule Stage do
   @vsn "0.1.0"
+
+  # require Logger
+
   @moduledoc """
 
   ```elixir
@@ -162,6 +165,8 @@ defmodule Stage do
   def put(s, lst, val, iden \\ nil) do
     # orig -diff-> start -stage-> internal
 
+    # Logger.warn("put  #{inspect({lst, val, iden})}")
+
     internal1 = Mlmap.supdate(s.internal1, lst, val)
     stage1 = Mlmap.update(s.stage1, lst, val)
 
@@ -197,6 +202,8 @@ defmodule Stage do
       |> Enum.reduce(
         {s.internal1, s.stage1, s.internal2, s.stage2, s.internal12, s.stage12},
         fn {lst, val, iden}, {internal1, stage1, internal2, stage2, internal12, stage12} ->
+          # Logger.warn("putl #{inspect({lst, val, iden})}")
+
           internal1 = Mlmap.supdate(internal1, lst, val)
           stage1 = Mlmap.update(stage1, lst, val)
 
@@ -234,6 +241,8 @@ defmodule Stage do
 
   @spec merge(t, [any], Map.t(), iden) :: t
   def merge(s, lst, val, iden) do
+    # Logger.warn("mer #{inspect({lst, val, iden})}")
+
     {l1, l2} =
       case lst do
         [map, key | rest] ->
@@ -325,10 +334,10 @@ defmodule Stage do
   @spec reduce_while(t, [any], a, (any, a -> {:cont, a} | {:halt, a})) :: a when a: var
   def reduce_while(s, lst, acc, fnc), do: reducem_while(s, :internal1, lst, acc, fnc)
 
-  @spec full(t, [any], Mlmap.fulfun) :: [any]
+  @spec full(t, [any], Mlmap.fulfun()) :: [any]
   def full(s, lst, fnc), do: Mlmap.full(s.orig1, s.diff1, s.current1, lst, fnc)
 
-  @spec track(t, [any], Mlmap.mapfun) :: [any]
+  @spec track(t, [any], Mlmap.mapfun()) :: [any]
   def track(s, lst, fnc), do: Mlmap.track(s.orig1, s.diff1, lst, fnc)
 
   @spec track_reduce(t, [any], a, Mlmap.redfun(a)) :: a when a: var
