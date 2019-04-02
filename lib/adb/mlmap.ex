@@ -459,7 +459,7 @@ defmodule Mlmap do
   # def reduce(s, lst, acc, fnc) do
   #   orig = getm(s, :orig1, lst, %{})
   #   diff = getm(s, :diff1, lst, %{})
-  #   start = getm(s, :start1, lst, %{})
+  #   start = getm(s, :current1, lst, %{})
   #
   #   case start do
   #     %{__struct__: _} ->

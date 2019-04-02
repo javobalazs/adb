@@ -19,7 +19,7 @@ send :tdb, ["register", "segg", 4, 4]
 ```elixir
 def deps do
   [
-    {:adb, git: "git@github.com:javobalazs/adb.git", tag: "0.1.3"},
+    {:adb, git: "git@github.com:javobalazs/adb.git", tag: "0.1.4"},
   ]
 end
 ```

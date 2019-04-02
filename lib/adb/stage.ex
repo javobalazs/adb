@@ -32,9 +32,9 @@ defmodule Stage do
             orig1: nil,
             orig2: nil,
             orig12: nil,
-            start1: nil,
-            start2: nil,
-            start12: nil,
+            current1: nil,
+            current2: nil,
+            current12: nil,
             name: nil,
             rule_ver: 0,
             binding: nil,
@@ -62,9 +62,9 @@ defmodule Stage do
           orig1: Map.t(),
           orig2: Map.t(),
           orig12: Map.t(),
-          start1: Map.t(),
-          start2: Map.t(),
-          start12: Map.t(),
+          current1: Map.t(),
+          current2: Map.t(),
+          current12: Map.t(),
           name: String.t(),
           rule_ver: Integer.t(),
           binding: Rule.binding(),
@@ -86,9 +86,9 @@ defmodule Stage do
           | :orig1
           | :orig2
           | :orig12
-          | :start1
-          | :start2
-          | :start12
+          | :current1
+          | :current2
+          | :current12
           | :internal1
           | :internal2
           | :internal12
@@ -132,9 +132,9 @@ defmodule Stage do
       internal1: internal1,
       internal2: internal2,
       internal12: internal12,
-      start1: internal1,
-      start2: internal2,
-      start12: internal12,
+      current1: internal1,
+      current2: internal2,
+      current12: internal12,
       pid: pid
     }
   end
@@ -326,7 +326,7 @@ defmodule Stage do
   def reduce_while(s, lst, acc, fnc), do: reducem_while(s, :internal1, lst, acc, fnc)
 
   @spec full(t, [any], Mlmap.fulfun) :: [any]
-  def full(s, lst, fnc), do: Mlmap.full(s.orig1, s.diff1, s.start1, lst, fnc)
+  def full(s, lst, fnc), do: Mlmap.full(s.orig1, s.diff1, s.current1, lst, fnc)
 
   @spec track(t, [any], Mlmap.mapfun) :: [any]
   def track(s, lst, fnc), do: Mlmap.track(s.orig1, s.diff1, lst, fnc)
@@ -341,7 +341,7 @@ defmodule Stage do
   # def reduce(s, lst, acc, fnc) do
   #   orig = getm(s, :orig1, lst, %{})
   #   diff = getm(s, :diff1, lst, %{})
-  #   start = getm(s, :start1, lst, %{})
+  #   start = getm(s, :current1, lst, %{})
   #
   #   case start do
   #     %{__struct__: _} ->

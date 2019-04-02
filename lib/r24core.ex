@@ -570,8 +570,8 @@
 #   @spec diff_filter(Stage.t(), String.t(), String.t(), String.t(), String.t(), Map.t(), Integer.t()) :: Stage.t()
 #   def diff_filter(stage, sessions, diffs, origs, maxseq, istore, iseq) do
 #     # dsessions = Stage.getm(stage, :diff1, [sessions], %{})
-#     sdiffs = Stage.getm(stage, :start1, [diffs], %{})
-#     sorigs = Stage.getm(stage, :start1, [origs], %{})
+#     sdiffs = Stage.getm(stage, :current1, [diffs], %{})
+#     sorigs = Stage.getm(stage, :current1, [origs], %{})
 #
 #     # Logger.warn("| #{pid} | diff-filter | stage_before | #{inspect(stage, pretty: true)} |")
 #
