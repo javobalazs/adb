@@ -33,7 +33,8 @@ defmodule Store do
             internal2: %{},
             internal12: %{},
             pid: nil,
-            msgqueue: []
+            msgqueue: [],
+            qlen: 0
 
   @type t :: %__MODULE__{
           diffs1: %{Integer.t() => Map.t()},
@@ -54,7 +55,8 @@ defmodule Store do
           internal2: Map.t(),
           internal12: Map.t(),
           pid: String.t(),
-          msgqueue: [{Mulmap.iden(), Mulmap.key(), Mulmap.scalar()}]
+          msgqueue: [{Mulmap.iden(), Mulmap.key(), Mulmap.scalar()}],
+          qlen: Integer.t()
         }
 
   @spec constructor(String.t()) :: t
@@ -232,7 +234,7 @@ defmodule Store do
     s =
       if lst != [] do
         execute_step(
-          %{s | msgqueue: []},
+          %{s | msgqueue: [], qlen: 0},
           "input",
           0,
           %{},
@@ -320,7 +322,7 @@ defmodule Store do
   end
 
   @spec add_to_queue(t, [any], any) :: t
-  def add_to_queue(s, lst, val), do: %{s | msgqueue: [{lst, val, nil} | s.msgqueue]}
+  def add_to_queue(s, lst, val), do: %{s | msgqueue: [{lst, val, nil} | s.msgqueue], qlen: s.qlen + 1}
 
   @spec set_pid(t, String.t()) :: t
   def set_pid(s, pid), do: %{s | pid: pid}
