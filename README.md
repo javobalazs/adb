@@ -6,6 +6,19 @@ Egyenlore semmi.
 
 Az `R24Core` modulban.
 
+Szinkronos hivasnal:
+
+```elixir
+task = Task.async(fn -> send :tdb, ["sync", self(), uuid, "new_id"]; receive do msg -> msg end end)
+res = Task.await(task)
+```
+
+vagy
+
+```elixir
+res = Task.async(fn -> send :tdb, ["sync", self(), uuid, "new_id"]; receive do msg -> msg end end) |> Task.await()
+```
+
 ## Installation
 
 ```elixir
