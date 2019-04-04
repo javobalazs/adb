@@ -56,25 +56,25 @@ defmodule Stage do
 
   """
   @type t :: %__MODULE__{
-          stage1: Map.t(),
-          stage2: Map.t(),
-          stage12: Map.t(),
-          diff1: Map.t(),
-          diff2: Map.t(),
-          diff12: Map.t(),
-          orig1: Map.t(),
-          orig2: Map.t(),
-          orig12: Map.t(),
-          current1: Map.t(),
-          current2: Map.t(),
-          current12: Map.t(),
+          stage1: Mlmap.t(),
+          stage2: Mlmap.t(),
+          stage12: Mlmap.t(),
+          diff1: Mlmap.t(),
+          diff2: Mlmap.t(),
+          diff12: Mlmap.t(),
+          orig1: Mlmap.t(),
+          orig2: Mlmap.t(),
+          orig12: Mlmap.t(),
+          current1: Mlmap.t(),
+          current2: Mlmap.t(),
+          current12: Mlmap.t(),
           name: String.t(),
           rule_ver: Integer.t(),
           binding: Rule.binding(),
           last: Integer.t(),
-          internal1: Map.t(),
-          internal2: Map.t(),
-          internal12: Map.t(),
+          internal1: Mlmap.t(),
+          internal2: Mlmap.t(),
+          internal12: Mlmap.t(),
           pid: String.t()
         }
 
@@ -338,13 +338,13 @@ defmodule Stage do
   def full(s, lst, fnc), do: Mlmap.full(s.orig1, s.diff1, s.current1, lst, fnc)
 
   @spec track(t, [any], Mlmap.mapfun()) :: [any]
-  def track(s, lst, fnc), do: Mlmap.track(s.orig1, s.diff1, lst, fnc)
+  def track(s, lst, fnc), do: Mlmap.track(s.orig1, s.diff1, s.current1, lst, fnc)
 
   @spec track_reduce(t, [any], a, Mlmap.redfun(a)) :: a when a: var
-  def track_reduce(s, lst, acc, fnc), do: Mlmap.track_reduce(s.orig1, s.diff1, lst, acc, fnc)
+  def track_reduce(s, lst, acc, fnc), do: Mlmap.track_reduce(s.orig1, s.diff1, s.current1, lst, acc, fnc)
 
   @spec track_reduce_while(t, [any], a, Mlmap.red_while_fun(a)) :: a when a: var
-  def track_reduce_while(s, lst, acc, fnc), do: Mlmap.track_reduce_while(s.orig1, s.diff1, lst, acc, fnc)
+  def track_reduce_while(s, lst, acc, fnc), do: Mlmap.track_reduce_while(s.orig1, s.diff1, s.current1, lst, acc, fnc)
 
   # @spec reduce(t, [any], any, (key :: any, event :: event, old :: any, new :: any, acc :: a -> {:cont, a} | {:halt, a}) :: a when a: var
   # def reduce(s, lst, acc, fnc) do

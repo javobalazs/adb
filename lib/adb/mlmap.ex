@@ -309,39 +309,39 @@ defmodule Mlmap do
   @spec reduce_while(t, [any], a, (any, a -> {:cont, a} | {:halt, a})) :: a when a: var
   def reduce_while(s, lst, acc, fnc), do: get(s, lst, %{}) |> Enum.reduce_while(acc, fnc)
 
-  @type nondeleted :: :unchanged | :inserted | :changed
-  @type event :: :deleted | nondeleted
-  @type fullfun :: (key :: any, event :: event, old :: any, new :: any -> any | :bump)
-  @type mapfun :: (key :: any, event :: nondeleted, old :: any, new :: any -> any | :bump)
-  @type redfun(a) :: (key :: any, event :: event, old :: any, new :: any, acc :: a -> a)
-  @type red_while_fun(a) :: (key :: any, event :: event, old :: any, new :: any, acc :: a -> {:cont, a} | {:halt, a})
+  @type nonunchanged :: :deleted | :inserted | :changed
+  @type event :: :unchanged | nonunchanged
+  @type fullfun :: (key :: any, event :: event, old :: any, diff:: any, new :: any -> any | :bump)
+  @type mapfun :: (key :: any, event :: nonunchanged, old :: any, diff:: any, new :: any -> any | :bump)
+  @type redfun(a) :: (key :: any, event :: nonunchanged, old :: any, diff:: any, new :: any, acc :: a -> a)
+  @type red_while_fun(a) :: (key :: any, event :: nonunchanged, old :: any, diff:: any, new :: any, acc :: a -> {:cont, a} | {:halt, a})
 
   @spec full(t, t, t, [any], fullfun) :: [any]
-  def full(orig, diff, last, lst, fnc) do
+  def full(orig, diff, curr, lst, fnc) do
     orig = get(orig, lst, %{})
     diff = get(diff, lst, %{})
-    last = get(last, lst, %{})
+    curr = get(curr, lst, %{})
 
-    case last do
+    case curr do
       %{__struct__: _} ->
         []
 
       x when is_map(x) ->
         first =
-          Enum.map(last, fn {k, v} ->
-            {event, ori} =
+          Enum.map(curr, fn {k, v} ->
+            {event, ori, dif} =
               case Map.fetch(diff, k) do
                 :error ->
-                  {:same, v}
+                  {:unchanged, v, v}
 
-                {:ok, _df} ->
+                {:ok, dif} ->
                   case Map.fetch(orig, k) do
-                    :error -> {:inserted, :undefined}
-                    {:ok, xori} -> {:changed, xori}
+                    :error -> {:inserted, :undefined, dif}
+                    {:ok, xori} -> {:changed, xori, dif}
                   end
               end
 
-            fnc.(k, event, ori, v)
+            fnc.(k, event, ori, dif, v)
           end)
           |> Enum.filter(fn v -> v != :bump end)
 
@@ -350,7 +350,7 @@ defmodule Mlmap do
           |> Enum.filter(fn {_k, v} -> v == :undefined end)
           |> Enum.reduce([], fn {k, _}, acc ->
             ori = Map.get(orig, k)
-            [fnc.(k, :deleted, ori, :undefined) | acc]
+            [fnc.(k, :deleted, ori, :undefined, :undefined) | acc]
           end)
           |> Enum.filter(fn v -> v != :bump end)
 
@@ -361,10 +361,11 @@ defmodule Mlmap do
     end
   end
 
-  @spec track(t, t, [any], mapfun) :: [any]
-  def track(orig, diff, lst, fnc) do
+  @spec track(t, t, t, [any], mapfun) :: [any]
+  def track(orig, diff, curr, lst, fnc) do
     orig = get(orig, lst, %{})
     diff = get(diff, lst, %{})
+    curr = get(curr, lst, %{})
 
     case diff do
       %{__struct__: _} ->
@@ -372,19 +373,19 @@ defmodule Mlmap do
 
       x when is_map(x) ->
         Enum.map(diff, fn {k, v} ->
-          {event, ori} =
+          {event, ori, cur} =
             case v do
               :undefined ->
-                {:deleted, Map.get(orig, k)}
+                {:deleted, Map.get(orig, k), :undefined}
 
               _ ->
                 case Map.fetch(orig, k) do
-                  :error -> {:inserted, :undefined}
-                  {:ok, xori} -> {:changed, xori}
+                  :error -> {:inserted, :undefined, v}
+                  {:ok, xori} -> {:changed, xori, Map.get(curr, k)}
                 end
             end
 
-          fnc.(k, event, ori, v)
+          fnc.(k, event, ori, v, cur)
         end)
         |> Enum.filter(fn v -> v != :bump end)
 
@@ -393,10 +394,11 @@ defmodule Mlmap do
     end
   end
 
-  @spec track_reduce(t, t, [any], a, redfun(a)) :: a when a: var
-  def track_reduce(orig, diff, lst, acc, fnc) do
+  @spec track_reduce(t, t, t, [any], a, redfun(a)) :: a when a: var
+  def track_reduce(orig, diff, curr, lst, acc, fnc) do
     orig = get(orig, lst, %{})
     diff = get(diff, lst, %{})
+    curr = get(curr, lst, %{})
 
     case diff do
       %{__struct__: _} ->
@@ -404,19 +406,19 @@ defmodule Mlmap do
 
       x when is_map(x) ->
         Enum.reduce(diff, acc, fn {k, v}, acc ->
-          {event, ori} =
+          {event, ori, cur} =
             case v do
               :undefined ->
-                {:deleted, Map.get(orig, k)}
+                {:deleted, Map.get(orig, k), :undefined}
 
               _ ->
                 case Map.fetch(orig, k) do
-                  :error -> {:inserted, :undefined}
-                  {:ok, xori} -> {:changed, xori}
+                  :error -> {:inserted, :undefined, v}
+                  {:ok, xori} -> {:changed, xori, Map.get(curr, k)}
                 end
             end
 
-          fnc.(k, event, ori, v, acc)
+          fnc.(k, event, ori, v, cur, acc)
         end)
 
       _ ->
@@ -424,10 +426,11 @@ defmodule Mlmap do
     end
   end
 
-  @spec track_reduce_while(t, t, [any], a, red_while_fun(a)) :: a when a: var
-  def track_reduce_while(orig, diff, lst, acc, fnc) do
+  @spec track_reduce_while(t, t, t, [any], a, red_while_fun(a)) :: a when a: var
+  def track_reduce_while(orig, diff, curr, lst, acc, fnc) do
     orig = get(orig, lst, %{})
     diff = get(diff, lst, %{})
+    curr = get(curr, lst, %{})
 
     case diff do
       %{__struct__: _} ->
@@ -435,19 +438,19 @@ defmodule Mlmap do
 
       x when is_map(x) ->
         Enum.reduce_while(diff, acc, fn {k, v}, acc ->
-          {event, ori} =
+          {event, ori, cur} =
             case v do
               :undefined ->
-                {:deleted, Map.get(orig, k)}
+                {:deleted, Map.get(orig, k), :undefined}
 
               _ ->
                 case Map.fetch(orig, k) do
-                  :error -> {:inserted, :undefined}
-                  {:ok, xori} -> {:changed, xori}
+                  :error -> {:inserted, :undefined, v}
+                  {:ok, xori} -> {:changed, xori, Map.get(curr, k)}
                 end
             end
 
-          fnc.(k, event, ori, v, acc)
+          fnc.(k, event, ori, v, cur, acc)
         end)
 
       _ ->
