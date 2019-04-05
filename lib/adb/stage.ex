@@ -410,6 +410,18 @@ defmodule Stage do
   @spec track_reduce_while(t, [any], a, Mlmap.red_while_fun(a)) :: a when a: var
   def track_reduce_while(s, lst, acc, fnc), do: Mlmap.track_reduce_while(s.orig1, s.diff1, s.current1, lst, acc, fnc)
 
+  @spec nfull(t, [any], Mlmap.fulfun()) :: [any]
+  def nfull(s, lst, fnc), do: Mlmap.full(s.current1, s.stage1, s.internal1, lst, fnc)
+
+  @spec ntrack(t, [any], Mlmap.mapfun()) :: [any]
+  def ntrack(s, lst, fnc), do: Mlmap.track(s.current1, s.stage1, s.internal1, lst, fnc)
+
+  @spec ntrack_reduce(t, [any], a, Mlmap.redfun(a)) :: a when a: var
+  def ntrack_reduce(s, lst, acc, fnc), do: Mlmap.track_reduce(s.current1, s.stage1, s.internal1, lst, acc, fnc)
+
+  @spec ntrack_reduce_while(t, [any], a, Mlmap.red_while_fun(a)) :: a when a: var
+  def ntrack_reduce_while(s, lst, acc, fnc), do: Mlmap.track_reduce_while(s.current1, s.stage1, s.internal1, lst, acc, fnc)
+
   # @spec reduce(t, [any], any, (key :: any, event :: event, old :: any, new :: any, acc :: a -> {:cont, a} | {:halt, a}) :: a when a: var
   # def reduce(s, lst, acc, fnc) do
   #   orig = getm(s, :orig1, lst, %{})

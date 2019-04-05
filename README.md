@@ -24,7 +24,7 @@ res = Task.async(fn -> send :tdb, ["sync", self(), uuid, "new_id"]; receive do m
 ```elixir
 def deps do
   [
-    {:adb, git: "git@github.com:javobalazs/adb.git", tag: "0.1.7"},
+    {:adb, git: "git@github.com:javobalazs/adb.git", tag: "0.1.8"},
   ]
 end
 ```
