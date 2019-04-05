@@ -300,21 +300,39 @@ defmodule Mlmap do
   ##              ##     ## ##     ## ##         ##      ##    ##  ##       ##     ## ##     ## ##    ## ##                    ##
   ######          ##     ## ##     ## ##        ##       ##     ## ######## ########   #######   ######  ########          ######
 
-  @spec map(t, [any], (any -> any)) :: [any]
-  def map(s, lst, fnc), do: get(s, lst, %{}) |> Enum.map(fnc) |> Enum.filter(fn x -> x != :bump end)
+  @spec map(t, [any], ({any, any} -> any)) :: [any]
+  def map(s, lst, fnc) do
+    case get(s, lst, %{}) do
+      %{__struct__: _} -> []
+      mp when is_map(mp) -> mp |> Enum.map(fnc) |> Enum.filter(fn x -> x != :bump end)
+      _ -> []
+    end
+  end
 
-  @spec reduce(t, [any], a, (any, a -> a)) :: a when a: var
-  def reduce(s, lst, acc, fnc), do: get(s, lst, %{}) |> Enum.reduce(acc, fnc)
+  @spec reduce(t, [any], a, ({any, any}, a -> a)) :: a when a: var
+  def reduce(s, lst, acc, fnc) do
+    case get(s, lst, %{}) do
+      %{__struct__: _} -> acc
+      mp when is_map(mp) -> mp |> Enum.reduce(acc, fnc)
+      _ -> acc
+    end
+  end
 
-  @spec reduce_while(t, [any], a, (any, a -> {:cont, a} | {:halt, a})) :: a when a: var
-  def reduce_while(s, lst, acc, fnc), do: get(s, lst, %{}) |> Enum.reduce_while(acc, fnc)
+  @spec reduce_while(t, [any], a, ({any, any}, a -> {:cont, a} | {:halt, a})) :: a when a: var
+  def reduce_while(s, lst, acc, fnc) do
+    case get(s, lst, %{}) do
+      %{__struct__: _} -> acc
+      mp when is_map(mp) -> mp |> Enum.reduce_while(acc, fnc)
+      _ -> acc
+    end
+  end
 
   @type nonunchanged :: :deleted | :inserted | :changed
   @type event :: :unchanged | nonunchanged
-  @type fullfun :: (key :: any, event :: event, old :: any, diff:: any, new :: any -> any | :bump)
-  @type mapfun :: (key :: any, event :: nonunchanged, old :: any, diff:: any, new :: any -> any | :bump)
-  @type redfun(a) :: (key :: any, event :: nonunchanged, old :: any, diff:: any, new :: any, acc :: a -> a)
-  @type red_while_fun(a) :: (key :: any, event :: nonunchanged, old :: any, diff:: any, new :: any, acc :: a -> {:cont, a} | {:halt, a})
+  @type fullfun :: (key :: any, event :: event, old :: any, diff :: any, new :: any -> any | :bump)
+  @type mapfun :: (key :: any, event :: nonunchanged, old :: any, diff :: any, new :: any -> any | :bump)
+  @type redfun(a) :: (key :: any, event :: nonunchanged, old :: any, diff :: any, new :: any, acc :: a -> a)
+  @type red_while_fun(a) :: (key :: any, event :: nonunchanged, old :: any, diff :: any, new :: any, acc :: a -> {:cont, a} | {:halt, a})
 
   @spec full(t, t, t, [any], fullfun) :: [any]
   def full(orig, diff, curr, lst, fnc) do
