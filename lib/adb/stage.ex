@@ -279,12 +279,12 @@ defmodule Stage do
       end
 
     s = put(s, l1)
-    s = merge_aux(s, l2)
+    s = merge_2level(s, l2)
     s
   end
 
-  @spec merge_aux(t, [{any, any, [any], Map.t(), iden}]) :: t
-  def merge_aux(s, ops) do
+  @spec merge_2level(t, [{any, any, [any], Map.t(), iden}]) :: t
+  def merge_2level(s, ops) do
     {internal1, stage1, internal2, stage2, internal12, stage12} =
       Enum.reduce(ops, {s.internal1, s.stage1, s.internal2, s.stage2, s.internal12, s.stage12}, fn {map, key, lst, val, iden}, {internal1, stage1, internal2, stage2, internal12, stage12} ->
         ulst = [map, key | lst]
@@ -306,6 +306,70 @@ defmodule Stage do
       end)
 
     %{s | internal1: internal1, stage1: stage1, internal2: internal2, stage2: stage2, internal12: internal12, stage12: stage12}
+  end
+
+  ######           ######   #######  ##     ## ########  #### ##    ## ######## ########           ######
+  ##              ##    ## ##     ## ###   ### ##     ##  ##  ###   ## ##       ##     ##              ##
+  ##              ##       ##     ## #### #### ##     ##  ##  ####  ## ##       ##     ##              ##
+  ##              ##       ##     ## ## ### ## ########   ##  ## ## ## ######   ##     ##              ##
+  ##              ##       ##     ## ##     ## ##     ##  ##  ##  #### ##       ##     ##              ##
+  ##              ##    ## ##     ## ##     ## ##     ##  ##  ##   ### ##       ##     ##              ##
+  ######           ######   #######  ##     ## ########  #### ##    ## ######## ########           ######
+
+  @spec bulk(t, [{:merge, [any], Map.t(), iden} | {[any], any, iden} | {any, any, [any], Map.t(), iden}]) :: t
+  def bulk(s, lstlst) do
+    # Logger.warn("mer #{inspect({lst, val, iden})}")
+
+    {l1, l2} =
+      lstlst
+      |> Enum.reduce({[], []}, fn x, {l1, l2} ->
+        case x do
+          {_lst, _val, _iden} ->
+            {[x | l1], l2}
+
+          {_map, _key, _lst, _val, _iden} ->
+            {l1, [x | l2]}
+
+          {:merge, lst, val, iden} ->
+            case lst do
+              [map, key | rest] ->
+                {l1, [{map, key, rest, val, iden} | l2]}
+
+              [map] ->
+                Enum.reduce(val, {l1, l2}, fn {key, v}, {acc1, acc2} ->
+                  case v do
+                    %{__struct__: _} -> {[{[map, key], v, iden} | acc1], acc2}
+                    x when is_map(x) -> {acc1, [{map, key, [], v, iden} | acc2]}
+                    _ -> {[{[map, key], v, iden} | acc1], acc2}
+                  end
+                end)
+
+              _ ->
+                Enum.reduce(val, {l1, l2}, fn {map, v2}, {acc1, acc2} ->
+                  case v2 do
+                    %{__struct__: _} ->
+                      {[{[map], v2, iden} | acc1], acc2}
+
+                    x when is_map(x) ->
+                      Enum.reduce(v2, {acc1, acc2}, fn {key, v}, {acc1x, acc2x} ->
+                        case v do
+                          %{__struct__: _} -> {[{[map, key], v, iden} | acc1x], acc2x}
+                          x when is_map(x) -> {acc1x, [{map, key, [], v, iden} | acc2x]}
+                          _ -> {[{[map, key], v, iden} | acc1x], acc2x}
+                        end
+                      end)
+
+                    _ ->
+                      {[{[map], v2, iden} | acc1], acc2}
+                  end
+                end)
+            end
+        end
+      end)
+
+    s = put(s, l1)
+    s = merge_2level(s, l2)
+    s
   end
 
   ######          ##     ##    ###    ########        ## ########  ######## ########  ##     ##  ######  ########          ######
