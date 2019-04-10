@@ -325,6 +325,321 @@
   # end
   #
 
+# # Regi ADB
+#
+# defmodule ADB do
+#   @vsn "0.1.0"
+#   require Logger
+#
+#   @mnesia_wait_for_tables_timeout 3_000
+#
+#   @moduledoc """
+#   - TODO szamlalo adatbazisbol
+#   - TODO observer/trigger
+#   - TODO ephemeral
+#   """
+#
+#   defstruct qc: [],
+#             ephemeral: %{},
+#             persistent: %{},
+#             newm: %{},
+#             oldm: %{},
+#             stages: %{},
+#             diffs: %{},
+#             last: 20,
+#             first: 20,
+#             rotate_at_dump: 5,
+#             dump_counter: 0,
+#             last_mod: %{}
+#
+#   @type t :: %__MODULE__{
+#           # Osszevont kulcs `{map, key}`
+#           qc: qc_t,
+#           # Osszevont kulcs `{map, key}`
+#           ephemeral: Map.t(),
+#           # Osszevont kulcs `{map, key}`
+#           persistent: Map.t(),
+#           # Osszevont kulcs `{map, key}`
+#           newm: Map.t(),
+#           # Osszevont kulcs `{map, key}`
+#           oldm: Map.t(),
+#           # Osszevont kulcs `{map, key}`
+#           stages: %{Integer.t() => Map.t()},
+#           # Map-onkent kulonallo almap-ek
+#           diffs: %{Integer.t() => Map.t()},
+#           last: Integer.t(),
+#           first: Integer.t(),
+#           rotate_at_dump: Integer.t(),
+#           dump_counter: Integer.t(),
+#           last_mod: %{any => Integer.t()}
+#         }
+#
+#   @type qc_t :: [Map.t()]
+#
+#   @type binding_t :: Map.t
+#   @type observe_t :: List.t
+#
+#   @type rule_t :: %{
+#     last_run: Integer.t | nil,
+#     binding: binding_t,
+#     observe: observe_t,
+#     closure: (t, binding_t, observe_t -> {t, binding_t, observe_t}),
+#   }
+#
+#   ######          #### ##    ## #### ########          ######
+#   ##               ##  ###   ##  ##     ##                 ##
+#   ##               ##  ####  ##  ##     ##                 ##
+#   ##               ##  ## ## ##  ##     ##                 ##
+#   ##               ##  ##  ####  ##     ##                 ##
+#   ##               ##  ##   ###  ##     ##                 ##
+#   ######          #### ##    ## ####    ##             ######
+#
+#   def init(levels \\ 5) do
+#     x = :mnesia.system_info(:use_dir)
+#
+#     if !x do
+#       Logger.warn("| ADB | create |")
+#       :mnesia.stop()
+#       :mnesia.create_schema([node()])
+#       :mnesia.start()
+#     else
+#       Logger.warn("| ADB | exist |")
+#     end
+#
+#     res =
+#       case :mnesia.create_table(:data, disc_copies: [node()], attributes: [:key, :value], type: :ordered_set) do
+#         {:atomic, :ok} ->
+#           Logger.warn("| ADB | data | created |")
+#           :ok
+#
+#         {:aborted, {:already_exists, _a}} ->
+#           Logger.warn("| ADB | data | already |")
+#           :ok
+#
+#         {:aborted, a} ->
+#           Logger.warn("| ADB | data | error | #{inspect(a)}")
+#           {:error, :create_table}
+#       end
+#
+#     if res == :ok do
+#       :mnesia.wait_for_tables([:data], @mnesia_wait_for_tables_timeout)
+#       s = constructor(levels)
+#       {:ok, s}
+#     else
+#       res
+#     end
+#   end
+#
+#   @spec constructor(Integer.t()) :: t
+#   def constructor(levels \\ 5) do
+#     %__MODULE__{qc: List.duplicate(%{}, levels)}
+#   end
+#
+#   ######          ##     ##    ###    ##    ##    ###     ######   ######## ##     ## ######## ##    ## ########          ######
+#   ##              ###   ###   ## ##   ###   ##   ## ##   ##    ##  ##       ###   ### ##       ###   ##    ##                 ##
+#   ##              #### ####  ##   ##  ####  ##  ##   ##  ##        ##       #### #### ##       ####  ##    ##                 ##
+#   ##              ## ### ## ##     ## ## ## ## ##     ## ##   #### ######   ## ### ## ######   ## ## ##    ##                 ##
+#   ##              ##     ## ######### ##  #### ######### ##    ##  ##       ##     ## ##       ##  ####    ##                 ##
+#   ##              ##     ## ##     ## ##   ### ##     ## ##    ##  ##       ##     ## ##       ##   ###    ##                 ##
+#   ######          ##     ## ##     ## ##    ## ##     ##  ######   ######## ##     ## ######## ##    ##    ##             ######
+#
+#   @spec dump(t) :: t
+#   def dump(s) do
+#     # Dump
+#     s.persistent
+#     |> Enum.each(fn {real_key, val} ->
+#       # Logger.info("k: #{inspect(real_key)}, v: #{inspect(val)}")
+#       case val do
+#         :undefined -> :mnesia.dirty_delete(:data, real_key)
+#         _ -> :mnesia.dirty_write({:data, real_key, val})
+#       end
+#     end)
+#
+#     s = %{s | persistent: %{}}
+#
+#     dump_counter = s.dump_counter + 1
+#
+#     # Rotate
+#     s =
+#       if dump_counter >= s.rotate_at_dump do
+#         qc = Enum.reverse(s.qc)
+#         [_ | qc] = qc
+#         qc = [%{} | Enum.reverse(qc)]
+#         %{s | qc: qc, dump_counter: 0}
+#       else
+#         %{s | dump_counter: dump_counter}
+#       end
+#
+#     s
+#   end
+#
+#   @spec step(t) :: t
+#   def step(s) do
+#     last = s.last
+#
+#     # Itt tenylegesen ki lehet irni az ephemeralt.
+#     # Persisntet kiirasa felesleges.
+#     # eph = s.ephemeral
+#     stages = Map.put(s.stages, last, s.oldm)
+#     newm = s.newm
+#     newtop = newm |> Enum.reduce(%{}, fn {{m, k}, v}, acc -> mapmap_put(acc, m, k, v) end)
+#
+#     diffs = s.diffs |> Enum.map(fn {st, df} -> {st, mapmap_mrg(df, newtop)} end)
+#     diffs = [{last, newtop} | diffs] |> Map.new()
+#     %{s | ephemeral: %{}, newm: %{}, oldm: newm, stages: stages, diffs: diffs, last: last + 1}
+#   end
+#
+#   @spec skip(t, pos_integer) :: t
+#   def skip(s, n) do
+#     last = s.last
+#     first = s.first
+#     nfirst = first + n
+#     nfirst = if nfirst > last, do: last, else: nfirst
+#
+#     if nfirst > first do
+#       stages = s.stages |> Enum.filter(fn {k, _v} -> k >= nfirst end) |> Map.new()
+#       diffs = s.diffs |> Enum.filter(fn {k, _v} -> k >= nfirst end) |> Map.new()
+#       %{s | diffs: diffs, stages: stages, first: nfirst}
+#     else
+#       s
+#     end
+#   end
+#
+#   def mapmap_upd(mm, map, key, val), do: Map.update(mm, map, %{key => val}, fn x -> Map.update(x, key, val, fn x -> x end) end)
+#   def mapmap_put(mm, map, key, val), do: Map.update(mm, map, %{key => val}, fn x -> Map.put(x, key, val) end)
+#   def mapmap_mrg(mm1, mm2), do: Map.merge(mm1, mm2, fn _k, v1, v2 -> Map.merge(v1, v2) end)
+#
+#   ######           ######   ######## ######## ######## ######## ########           ######
+#   ##              ##    ##  ##          ##       ##    ##       ##     ##              ##
+#   ##              ##        ##          ##       ##    ##       ##     ##              ##
+#   ##              ##   #### ######      ##       ##    ######   ########               ##
+#   ##              ##    ##  ##          ##       ##    ##       ##   ##                ##
+#   ##              ##    ##  ##          ##       ##    ##       ##    ##               ##
+#   ######           ######   ########    ##       ##    ######## ##     ##          ######
+#
+#   @spec getdp(t, any, any, any) :: {t, any}
+#   def getdp(s, map, key, dval \\ :undefined), do: get(s, {map, key}, :persistent, dval)
+#
+#   @spec get(t, any, :persistent | :ephemeral, any) :: {t, any}
+#   def get(s, real_key, mode, dval) do
+#     [top | rest] = s.qc
+#
+#     case Map.fetch(top, real_key) do
+#       :error ->
+#         val = get_aux(rest, real_key, mode)
+#         qc = [Map.put(top, real_key, val) | rest]
+#
+#         s = %{s | qc: qc, oldm: Map.update(s.oldm, real_key, val, fn x -> x end)}
+#
+#         if val == :undefined do
+#           {s, dval}
+#         else
+#           {s, val}
+#         end
+#
+#       {:ok, val} ->
+#         {s, val}
+#     end
+#   end
+#
+#   @spec get_aux(qc_t, any, :persistent | :ephemeral) :: any
+#   defp get_aux(qc, key, mode) do
+#     case qc do
+#       [] ->
+#         case :mnesia.dirty_read(:data, key) do
+#           [] ->
+#             # Logger.info("READ: #{inspect(key)}, v: undefined")
+#             :undefined
+#
+#           [{_tab, _k, v}] ->
+#             # Logger.info("READ: #{inspect(key)}, v: #{inspect(v)}")
+#             v
+#         end
+#
+#       [top | rest] ->
+#         case Map.fetch(top, key) do
+#           :error -> get_aux(rest, key, mode)
+#           {:ok, x} -> x
+#         end
+#     end
+#   end
+#
+#   ######           ######  ######## ######## ######## ######## ########           ######
+#   ##              ##    ## ##          ##       ##    ##       ##     ##              ##
+#   ##              ##       ##          ##       ##    ##       ##     ##              ##
+#   ##               ######  ######      ##       ##    ######   ########               ##
+#   ##                    ## ##          ##       ##    ##       ##   ##                ##
+#   ##              ##    ## ##          ##       ##    ##       ##    ##               ##
+#   ######           ######  ########    ##       ##    ######## ##     ##          ######
+#
+#   @spec putp(t, any, any, any) :: t
+#   def putp(s, map, key, val), do: put(s, {map, key}, val, false, :persistent)
+#
+#   @spec putgp(t, any, any, any) :: t
+#   def putgp(s, map, key, val), do: put(s, {map, key}, val, true, :persistent)
+#
+#   @spec put(t, {any, any}, any, Boolean.t(), :persistent | :ephemeral) :: t
+#   def put(s, real_key, val, get, mode) do
+#     s = if get, do: get(s, real_key, mode, :undefined) |> elem(0), else: s
+#     [top | rest] = s.qc
+#     qc = [Map.put(top, real_key, val) | rest]
+#     persistent = Map.put(s.persistent, real_key, val)
+#     newm = Map.put(s.newm, real_key, val)
+#     {map, _} = real_key
+#     last_mod = Map.put(s.last_mod, map, s.last)
+#     %{s | qc: qc, persistent: persistent, newm: newm, last_mod: last_mod}
+#   end
+#
+#   ######          ########     ###    ##    ##  ######   ########          ######
+#   ##              ##     ##   ## ##   ###   ## ##    ##  ##                    ##
+#   ##              ##     ##  ##   ##  ####  ## ##        ##                    ##
+#   ##              ########  ##     ## ## ## ## ##   #### ######                ##
+#   ##              ##   ##   ######### ##  #### ##    ##  ##                    ##
+#   ##              ##    ##  ##     ## ##   ### ##    ##  ##                    ##
+#   ######          ##     ## ##     ## ##    ##  ######   ########          ######
+#
+#   @spec rangep(t, any, any, any) :: {t, [{any, any}]}
+#   def rangep(s, map, key1, key2), do: range(s, map, key1, key2, :persistent)
+#
+#   @spec range(t, any, any, any, :persistent | :ephemeral) :: {t, [{any, any}]}
+#   def range(s, map, key1, key2, mode) do
+#     case mode do
+#       :persistent ->
+#         {s, acc} = range_persistent(s, map, :mnesia.dirty_next(:data, {map, key1}), key2, [])
+#         {s, Enum.reverse(acc)}
+#
+#       :ephemeral ->
+#         {s, []}
+#     end
+#   end
+#
+#   @spec range_persistent(t, any, any, any, [{any, any}]) :: {t, [{any, any}]}
+#   def range_persistent(s, map, key1, key2, acc) do
+#     key1 = if key2 == :undefined, do: key1, else: :"$end_of_table"
+#
+#     case key1 do
+#       :"$end_of_table" ->
+#         {s, acc}
+#
+#       # Normal map.
+#       {m, k} ->
+#         if map == m and (key2 == :undefined or k < key2) do
+#           {s, val} = get(s, key1, :persistent, :undefined)
+#
+#           acc = if val == :undefined, do: acc, else: [{k, val} | acc]
+#
+#           range_persistent(s, map, :mnesia.dirty_next(:data, key1), key2, acc)
+#         else
+#           {s, acc}
+#         end
+#
+#         # _ -> {s, acc}
+#     end
+#   end
+# end
+#
+
+
   # alias ADB.Mulmap
   #
   # defmodule Mulmap do

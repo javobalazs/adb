@@ -380,22 +380,22 @@ defmodule Stage do
   ##              ##     ## ##     ## ##         ##      ##    ##  ##       ##     ## ##     ## ##    ## ##                    ##
   ######          ##     ## ##     ## ##        ##       ##     ## ######## ########   #######   ######  ########          ######
 
-  @spec mapm(t, mapname, [any], (any -> any)) :: [any]
+  @spec mapm(t, mapname, [any], (any, any -> any)) :: [any]
   def mapm(s, mapname, lst, fnc), do: Map.get(s, mapname) |> Mlmap.map(lst, fnc)
 
-  @spec map(t, [any], (any -> any)) :: [any]
+  @spec map(t, [any], (any, any -> any)) :: [any]
   def map(s, lst, fnc), do: mapm(s, :internal1, lst, fnc)
 
-  @spec reducem(t, mapname, [any], a, (any, a -> a)) :: a when a: var
+  @spec reducem(t, mapname, [any], a, (any, any, a -> a)) :: a when a: var
   def reducem(s, mapname, lst, acc, fnc), do: Map.get(s, mapname) |> Mlmap.reduce(lst, acc, fnc)
 
-  @spec reduce(t, [any], a, (any, a -> a)) :: a when a: var
+  @spec reduce(t, [any], a, (any, any, a -> a)) :: a when a: var
   def reduce(s, lst, acc, fnc), do: reducem(s, :internal1, lst, acc, fnc)
 
-  @spec reducem_while(t, mapname, [any], a, (any, a -> {:cont, a} | {:halt, a})) :: a when a: var
+  @spec reducem_while(t, mapname, [any], a, (any, any, a -> {:cont, a} | {:halt, a})) :: a when a: var
   def reducem_while(s, mapname, lst, acc, fnc), do: Map.get(s, mapname) |> Mlmap.reduce_while(lst, acc, fnc)
 
-  @spec reduce_while(t, [any], a, (any, a -> {:cont, a} | {:halt, a})) :: a when a: var
+  @spec reduce_while(t, [any], a, (any, any, a -> {:cont, a} | {:halt, a})) :: a when a: var
   def reduce_while(s, lst, acc, fnc), do: reducem_while(s, :internal1, lst, acc, fnc)
 
   @spec full(t, [any], Mlmap.fulfun()) :: [any]
@@ -468,6 +468,138 @@ defmodule Stage do
   #       acc
   #   end
   # end
+
+  ######          ##     ##    ###    ########   #######        ## ########  ######## ########  ##     ##  ######  ########  #######           ######
+  ##              ###   ###   ## ##   ##     ## ##     ##      ##  ##     ## ##       ##     ## ##     ## ##    ## ##       ##     ##              ##
+  ##              #### ####  ##   ##  ##     ##        ##     ##   ##     ## ##       ##     ## ##     ## ##       ##              ##              ##
+  ##              ## ### ## ##     ## ########   #######     ##    ########  ######   ##     ## ##     ## ##       ######    #######               ##
+  ##              ##     ## ######### ##        ##          ##     ##   ##   ##       ##     ## ##     ## ##       ##       ##                     ##
+  ##              ##     ## ##     ## ##        ##         ##      ##    ##  ##       ##     ## ##     ## ##    ## ##       ##                     ##
+  ######          ##     ## ##     ## ##        ######### ##       ##     ## ######## ########   #######   ######  ######## #########          ######
+
+  @spec mapm2(t, mapname, [any], (any, any, any -> any)) :: [any]
+  def mapm2(s, mapname, lst, fnc), do: Map.get(s, mapname) |> Mlmap.map2(lst, fnc)
+
+  @spec map2(t, [any], (any, any, any -> any)) :: [any]
+  def map2(s, lst, fnc), do: mapm2(s, :internal1, lst, fnc)
+
+  @spec reducem2(t, mapname, [any], a, (any, any, any, a -> a)) :: a when a: var
+  def reducem2(s, mapname, lst, acc, fnc), do: Map.get(s, mapname) |> Mlmap.reduce2(lst, acc, fnc)
+
+  @spec reduce2(t, [any], a, (any, any, any, a -> a)) :: a when a: var
+  def reduce2(s, lst, acc, fnc), do: reducem2(s, :internal1, lst, acc, fnc)
+
+  @spec reducem_while2(t, mapname, [any], a, (any, any, any, a -> {:cont, a} | {:halt, a})) :: a when a: var
+  def reducem_while2(s, mapname, lst, acc, fnc), do: Map.get(s, mapname) |> Mlmap.reduce_while2(lst, acc, fnc)
+
+  @spec reduce_while2(t, [any], a, (any, any, any, a -> {:cont, a} | {:halt, a})) :: a when a: var
+  def reduce_while2(s, lst, acc, fnc), do: reducem_while2(s, :internal1, lst, acc, fnc)
+
+  @spec track2(t, [any], Mlmap.mapfun2()) :: [any]
+  def track2(s, lst, fnc), do: Mlmap.track2(s.orig1, s.diff1, s.current1, lst, fnc)
+
+  @spec track_reduce2(t, [any], a, Mlmap.redfun2(a)) :: a when a: var
+  def track_reduce2(s, lst, acc, fnc), do: Mlmap.track_reduce2(s.orig1, s.diff1, s.current1, lst, acc, fnc)
+
+  @spec track_reduce_while2(t, [any], a, Mlmap.red_while_fun2(a)) :: a when a: var
+  def track_reduce_while2(s, lst, acc, fnc), do: Mlmap.track_reduce_while2(s.orig1, s.diff1, s.current1, lst, acc, fnc)
+
+  @spec ntrack2(t, [any], Mlmap.mapfun2()) :: [any]
+  def ntrack2(s, lst, fnc), do: Mlmap.track2(s.current1, s.stage1, s.internal1, lst, fnc)
+
+  @spec ntrack_reduce2(t, [any], a, Mlmap.redfun2(a)) :: a when a: var
+  def ntrack_reduce2(s, lst, acc, fnc), do: Mlmap.track_reduce2(s.current1, s.stage1, s.internal1, lst, acc, fnc)
+
+  @spec ntrack_reduce_while2(t, [any], a, Mlmap.red_while_fun2(a)) :: a when a: var
+  def ntrack_reduce_while2(s, lst, acc, fnc), do: Mlmap.track_reduce_while2(s.current1, s.stage1, s.internal1, lst, acc, fnc)
+
+  ######          ##     ##    ###    ########   #######        ## ########  ######## ########  ##     ##  ######  ########  #######           ######
+  ##              ###   ###   ## ##   ##     ## ##     ##      ##  ##     ## ##       ##     ## ##     ## ##    ## ##       ##     ##              ##
+  ##              #### ####  ##   ##  ##     ##        ##     ##   ##     ## ##       ##     ## ##     ## ##       ##              ##              ##
+  ##              ## ### ## ##     ## ########   #######     ##    ########  ######   ##     ## ##     ## ##       ######    #######               ##
+  ##              ##     ## ######### ##               ##   ##     ##   ##   ##       ##     ## ##     ## ##       ##              ##              ##
+  ##              ##     ## ##     ## ##        ##     ##  ##      ##    ##  ##       ##     ## ##     ## ##    ## ##       ##     ##              ##
+  ######          ##     ## ##     ## ##         #######  ##       ##     ## ######## ########   #######   ######  ########  #######           ######
+
+  @spec mapm3(t, mapname, [any], (any, any, any, any -> any)) :: [any]
+  def mapm3(s, mapname, lst, fnc), do: Map.get(s, mapname) |> Mlmap.map3(lst, fnc)
+
+  @spec map3(t, [any], (any, any, any, any -> any)) :: [any]
+  def map3(s, lst, fnc), do: mapm3(s, :internal1, lst, fnc)
+
+  @spec reducem3(t, mapname, [any], a, (any, any, any, any, a -> a)) :: a when a: var
+  def reducem3(s, mapname, lst, acc, fnc), do: Map.get(s, mapname) |> Mlmap.reduce3(lst, acc, fnc)
+
+  @spec reduce3(t, [any], a, (any, any, any, any, a -> a)) :: a when a: var
+  def reduce3(s, lst, acc, fnc), do: reducem3(s, :internal1, lst, acc, fnc)
+
+  @spec reducem_while3(t, mapname, [any], a, (any, any, any, any, a -> {:cont, a} | {:halt, a})) :: a when a: var
+  def reducem_while3(s, mapname, lst, acc, fnc), do: Map.get(s, mapname) |> Mlmap.reduce_while3(lst, acc, fnc)
+
+  @spec reduce_while3(t, [any], a, (any, any, any, any, a -> {:cont, a} | {:halt, a})) :: a when a: var
+  def reduce_while3(s, lst, acc, fnc), do: reducem_while3(s, :internal1, lst, acc, fnc)
+
+  @spec track3(t, [any], Mlmap.mapfun3()) :: [any]
+  def track3(s, lst, fnc), do: Mlmap.track3(s.orig1, s.diff1, s.current1, lst, fnc)
+
+  @spec track_reduce3(t, [any], a, Mlmap.redfun3(a)) :: a when a: var
+  def track_reduce3(s, lst, acc, fnc), do: Mlmap.track_reduce3(s.orig1, s.diff1, s.current1, lst, acc, fnc)
+
+  @spec track_reduce_while3(t, [any], a, Mlmap.red_while_fun3(a)) :: a when a: var
+  def track_reduce_while3(s, lst, acc, fnc), do: Mlmap.track_reduce_while3(s.orig1, s.diff1, s.current1, lst, acc, fnc)
+
+  @spec ntrack3(t, [any], Mlmap.mapfun3()) :: [any]
+  def ntrack3(s, lst, fnc), do: Mlmap.track3(s.current1, s.stage1, s.internal1, lst, fnc)
+
+  @spec ntrack_reduce3(t, [any], a, Mlmap.redfun3(a)) :: a when a: var
+  def ntrack_reduce3(s, lst, acc, fnc), do: Mlmap.track_reduce3(s.current1, s.stage1, s.internal1, lst, acc, fnc)
+
+  @spec ntrack_reduce_while3(t, [any], a, Mlmap.red_while_fun3(a)) :: a when a: var
+  def ntrack_reduce_while3(s, lst, acc, fnc), do: Mlmap.track_reduce_while3(s.current1, s.stage1, s.internal1, lst, acc, fnc)
+
+  ######          ##     ##    ###    ########  ##              ## ########  ######## ########  ##     ##  ######  ######## ##                 ######
+  ##              ###   ###   ## ##   ##     ## ##    ##       ##  ##     ## ##       ##     ## ##     ## ##    ## ##       ##    ##               ##
+  ##              #### ####  ##   ##  ##     ## ##    ##      ##   ##     ## ##       ##     ## ##     ## ##       ##       ##    ##               ##
+  ##              ## ### ## ##     ## ########  ##    ##     ##    ########  ######   ##     ## ##     ## ##       ######   ##    ##               ##
+  ##              ##     ## ######### ##        #########   ##     ##   ##   ##       ##     ## ##     ## ##       ##       #########              ##
+  ##              ##     ## ##     ## ##              ##   ##      ##    ##  ##       ##     ## ##     ## ##    ## ##             ##               ##
+  ######          ##     ## ##     ## ##              ##  ##       ##     ## ######## ########   #######   ######  ########       ##           ######
+
+  @spec mapm4(t, mapname, [any], (any, any, any, any, any -> any)) :: [any]
+  def mapm4(s, mapname, lst, fnc), do: Map.get(s, mapname) |> Mlmap.map4(lst, fnc)
+
+  @spec map4(t, [any], (any, any, any, any, any -> any)) :: [any]
+  def map4(s, lst, fnc), do: mapm4(s, :internal1, lst, fnc)
+
+  @spec reducem4(t, mapname, [any], a, (any, any, any, any, any, a -> a)) :: a when a: var
+  def reducem4(s, mapname, lst, acc, fnc), do: Map.get(s, mapname) |> Mlmap.reduce4(lst, acc, fnc)
+
+  @spec reduce4(t, [any], a, (any, any, any, any, any, a -> a)) :: a when a: var
+  def reduce4(s, lst, acc, fnc), do: reducem4(s, :internal1, lst, acc, fnc)
+
+  @spec reducem_while4(t, mapname, [any], a, (any, any, any, any, any, a -> {:cont, a} | {:halt, a})) :: a when a: var
+  def reducem_while4(s, mapname, lst, acc, fnc), do: Map.get(s, mapname) |> Mlmap.reduce_while4(lst, acc, fnc)
+
+  @spec reduce_while4(t, [any], a, (any, any, any, any, any, a -> {:cont, a} | {:halt, a})) :: a when a: var
+  def reduce_while4(s, lst, acc, fnc), do: reducem_while4(s, :internal1, lst, acc, fnc)
+
+  @spec track4(t, [any], Mlmap.mapfun4()) :: [any]
+  def track4(s, lst, fnc), do: Mlmap.track4(s.orig1, s.diff1, s.current1, lst, fnc)
+
+  @spec track_reduce4(t, [any], a, Mlmap.redfun4(a)) :: a when a: var
+  def track_reduce4(s, lst, acc, fnc), do: Mlmap.track_reduce4(s.orig1, s.diff1, s.current1, lst, acc, fnc)
+
+  @spec track_reduce_while4(t, [any], a, Mlmap.red_while_fun4(a)) :: a when a: var
+  def track_reduce_while4(s, lst, acc, fnc), do: Mlmap.track_reduce_while4(s.orig1, s.diff1, s.current1, lst, acc, fnc)
+
+  @spec ntrack4(t, [any], Mlmap.mapfun4()) :: [any]
+  def ntrack4(s, lst, fnc), do: Mlmap.track4(s.current1, s.stage1, s.internal1, lst, fnc)
+
+  @spec ntrack_reduce4(t, [any], a, Mlmap.redfun4(a)) :: a when a: var
+  def ntrack_reduce4(s, lst, acc, fnc), do: Mlmap.track_reduce4(s.current1, s.stage1, s.internal1, lst, acc, fnc)
+
+  @spec ntrack_reduce_while4(t, [any], a, Mlmap.red_while_fun4(a)) :: a when a: var
+  def ntrack_reduce_while4(s, lst, acc, fnc), do: Mlmap.track_reduce_while4(s.current1, s.stage1, s.internal1, lst, acc, fnc)
 
   # defmodule
 end
