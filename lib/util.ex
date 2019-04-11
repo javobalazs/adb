@@ -123,6 +123,36 @@ defmodule Util do
   end
 
   @doc """
+  ```elixir
+  Util.wmatch([title, folder_id], params, BAD_SAND_VOTE_COLLECTION_PARAMS)
+  ```
+  Megnezi, hogy `params` illeszkedik-e `[title, folder_id]`-re.
+  Ha igen, megy tovabb, es az illeszkedes miatt a valtozok fel is veszik az ertekeket.
+  Ha nem, visszaadja az `Util.wf(BAD_SAND_VOTE_COLLECTION_PARAMS)` hibat.
+  """
+  defmacro wmatch(target, term, error_term) do
+    quote do
+      Util.wo(unquote(target)) =
+        case unquote(term) do
+          unquote(target) -> Util.wo(unquote(target))
+          _ -> Util.wf(unquote(error_term))
+        end
+    end
+  end
+
+  @doc """
+  ```elixir
+  Util.wcond(pr == nil, BAD_SAND_VOTE_COLLECTION_FOLDER)
+  ```
+  Ha `pr == nil`, akkor `Util.wf(BAD_SAND_VOTE_COLLECTION_FOLDER)`.
+  """
+  defmacro wcond(condition, error_term) do
+    quote do
+      :ok = if unquote(condition), do: Util.wf(unquote(error_term)), else: :ok
+    end
+  end
+
+  @doc """
   `wfix(x, default)`: `x` erteke marad, ha nem `nil`, kulonben `default`.
   """
   @spec wfix(any, any) :: Macro.t()
