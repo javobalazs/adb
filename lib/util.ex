@@ -153,6 +153,20 @@ defmodule Util do
   end
 
   @doc """
+  ```elixir
+  Util.wcall(valami(param))
+  # ekvivalens:
+  :ok = valami(param)
+  ```
+  ahol `valami(param)` vagy `:ok`-t ad vissza, vagy `{:error, term}`-et.
+  """
+  defmacro wcall(call) do
+    quote do
+      :ok = unquote(call)
+    end
+  end
+
+  @doc """
   `wfix(x, default)`: `x` erteke marad, ha nem `nil`, kulonben `default`.
   """
   @spec wfix(any, any) :: Macro.t()
