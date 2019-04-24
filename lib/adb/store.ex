@@ -134,7 +134,7 @@ defmodule Store do
     # Logger.warn(" store: #{name} =======store==> #{inspect s, pretty: true} ")
 
     # Elokeszites...
-    stage = Stage.constructor(orig1, orig2, orig12, diff1, diff2, diff12, name, rule_time, binding, last, internal1, internal2, internal12, s.pid)
+    stage = Stage.constructor(orig1, orig2, orig12, diff1, diff2, diff12, name, rule_time, binding, last, internal1, internal2, internal12, real, s.pid)
 
     # Tenyleges vegrehajtas! Utana a valtozasok kiszedese.
     # orig -diff-> start -stage-> internal
@@ -146,12 +146,14 @@ defmodule Store do
     diff12 = stage.stage12 |> Mlmap.filter(internal12)
     # Logger.warn(" store: #{name} ======diff1====> #{inspect diff1, pretty: true} ")
 
+    keep = real and stage.keep
+
     # Tortent-e valtozas?
     if Map.size(diff1) != 0 or Map.size(diff2) != 0 or Map.size(diff12) != 0 do
-      ver_num = if real, do: ver_num_delete(s.ver_num, rule_time), else: s.ver_num
+      ver_num = if keep, do: ver_num_delete(s.ver_num, rule_time), else: s.ver_num
       ver_num = ver_num_delete(ver_num, last)
       lastp1 = last + 1
-      ver_num = Map.put(ver_num, lastp1, if(real, do: 2, else: 1))
+      ver_num = Map.put(ver_num, lastp1, if(keep, do: 2, else: 1))
 
       # Valtozasok atvezetese.
       diffs1 = diffs1 |> Enum.filter(fn {k, _d} -> Map.get(ver_num, k, 0) > 0 end) |> Enum.map(fn {k, d} -> {k, Mlmap.merge(d, diff1)} end)
@@ -174,7 +176,7 @@ defmodule Store do
           origs2: Map.put(origs2, last, internal2),
           origs12: Map.put(origs12, last, internal12),
           last: lastp1,
-          rules_ver: if(real, do: Map.put(s.rules_ver, name, lastp1), else: s.rules_ver),
+          rules_ver: if(keep, do: Map.put(s.rules_ver, name, lastp1), else: s.rules_ver),
           # Ez biztosan uj itt.
           ver_num: ver_num,
           last_mod1: Map.merge(s.last_mod1, mod1),
@@ -185,7 +187,7 @@ defmodule Store do
           internal12: stage.internal12
       }
     else
-      if real, do: ver_num_bump(s, last, name, rule_time), else: s
+      if keep, do: ver_num_bump(s, last, name, rule_time), else: s
     end
   end
 

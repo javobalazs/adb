@@ -45,6 +45,8 @@ defmodule Stage do
             internal1: nil,
             internal2: nil,
             internal12: nil,
+            real: true,
+            keep: true,
             pid: nil
 
   @typedoc """
@@ -75,6 +77,8 @@ defmodule Stage do
           internal1: Mlmap.t(),
           internal2: Mlmap.t(),
           internal12: Mlmap.t(),
+          real: Boolean.t(),
+          keep: Boolean.t(),
           pid: String.t()
         }
 
@@ -118,9 +122,10 @@ defmodule Stage do
           internal1 :: Map.t(),
           internal2 :: Map.t(),
           internal12 :: Map.t(),
+          real :: Boolean.t(),
           pid :: String.t()
         ) :: t
-  def constructor(orig1, orig2, orig12, diff1, diff2, diff12, name, rule_ver, binding, last, internal1, internal2, internal12, pid) do
+  def constructor(orig1, orig2, orig12, diff1, diff2, diff12, name, rule_ver, binding, last, internal1, internal2, internal12, real, pid) do
     %__MODULE__{
       orig1: orig1,
       orig2: orig2,
@@ -138,6 +143,8 @@ defmodule Stage do
       current1: internal1,
       current2: internal2,
       current12: internal12,
+      real: real,
+      keep: real,
       pid: pid
     }
   end
@@ -152,6 +159,12 @@ defmodule Stage do
     mp = Map.get(s, map)
     Mlmap.get(mp, lst, defa)
   end
+
+  @doc """
+  Ha valodi szabaly fut, akkor felpattintsa-e a szabaly verzioszamat (`true`, default), vagy nem.
+  """
+  @spec set_keep(t, Boolean.t()) :: t
+  def set_keep(s, keep), do: %{s | keep: keep}
 
   ######          ########  ##     ## ########          ######
   ##              ##     ## ##     ##    ##                 ##
