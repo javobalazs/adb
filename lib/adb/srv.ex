@@ -36,10 +36,10 @@ defmodule Srv do
         case msg do
           :timeout ->
             s = Store.cycle(s)
-            # Inkabb nincs ateses, a `:checkout` modosithat, de az csak cleanup-jellegu (es puffereles) lehet,
-            # a logikat nem erintheti, azt csak a `:cpu` csinalhatja.
-            ## if Store.checkout_advanced(s), do: {:noreply, s, 0}, else: {:noreply, s}
-            {:noreply, s}
+            # VAN ateses, ha a `:checkout`-ban olyan imperativ muvelet van, ami azonnal visszaad valamit,
+            # ES modosulas van.
+            if Store.checkout_fallthrough(s), do: {:noreply, s, 0}, else: {:noreply, s}
+            # {:noreply, s}
 
           _ ->
             {:noreply, handle_info_callback(s, msg), 0}

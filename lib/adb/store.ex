@@ -43,19 +43,19 @@ defmodule Store do
           origs1: %{Integer.t() => Map.t()},
           origs2: %{Integer.t() => Map.t()},
           origs12: %{Integer.t() => Map.t()},
-          last_mod1: %{Mulmap.iden() => Integer.t()},
-          last_mod2: %{Mulmap.iden() => Integer.t()},
-          last_mod12: %{{Mulmap.iden(), Mulmap.iden()} => Integer.t()},
-          rules_ver: %{Mulmap.iden() => Integer.t()},
+          last_mod1: %{String.t() => Integer.t()},
+          last_mod2: %{String.t() => Integer.t()},
+          last_mod12: %{{String.t(), String.t()} => Integer.t()},
+          rules_ver: %{String.t() => Integer.t()},
           ver_num: %{Integer.t() => Integer.t()},
-          rules: %{Mulmap.iden() => Rule.t()},
+          rules: %{String.t() => Rule.t()},
           last: Integer.t(),
           first: %{Rule.burst() => Integer.t()},
           internal1: Map.t(),
           internal2: Map.t(),
           internal12: Map.t(),
           pid: String.t(),
-          msgqueue: [{Mulmap.iden(), Mulmap.key(), Mulmap.scalar()}],
+          msgqueue: [{String.t(), any, any}],
           qlen: Integer.t()
         }
 
@@ -95,7 +95,7 @@ defmodule Store do
 
         # Volt-e egyaltalan valtozas?
         if last_mod_check do
-          execute_step(s, name, rule_time, rule.binding, rule.function, true)
+          execute_step(s, name, rule_time, rule.binding, rule.function, true, rule.burst)
         else
           ver_num_bump(s, last, name, rule_time)
         end
@@ -105,8 +105,8 @@ defmodule Store do
     # def execute
   end
 
-  @spec execute_step(t, Mulmap.iden(), Integer.t(), Rule.binding(), Rule.functionx(), Boolean.t()) :: t
-  def execute_step(s, name, rule_time, binding, function, real) do
+  @spec execute_step(t, String.t(), Integer.t(), Rule.binding(), Rule.functionx(), Boolean.t(), Rule.burst()) :: t
+  def execute_step(s, name, rule_time, binding, function, real, burst) do
     last = s.last
     # Valtozok kiszedese.
     internal1 = s.internal1
@@ -134,7 +134,7 @@ defmodule Store do
     # Logger.warn(" store: #{name} =======store==> #{inspect s, pretty: true} ")
 
     # Elokeszites...
-    stage = Stage.constructor(orig1, orig2, orig12, diff1, diff2, diff12, name, rule_time, binding, last, internal1, internal2, internal12, real, s.pid)
+    stage = Stage.constructor(orig1, orig2, orig12, diff1, diff2, diff12, name, rule_time, binding, last, internal1, internal2, internal12, real, s.pid, burst)
 
     # Tenyleges vegrehajtas! Utana a valtozasok kiszedese.
     # orig -diff-> start -stage-> internal
@@ -149,46 +149,52 @@ defmodule Store do
     keep = real and stage.keep
 
     # Tortent-e valtozas?
-    if Map.size(diff1) != 0 or Map.size(diff2) != 0 or Map.size(diff12) != 0 do
-      ver_num = if keep, do: ver_num_delete(s.ver_num, rule_time), else: s.ver_num
-      ver_num = ver_num_delete(ver_num, last)
-      lastp1 = last + 1
-      ver_num = Map.put(ver_num, lastp1, if(keep, do: 2, else: 1))
+    s =
+      if Map.size(diff1) != 0 or Map.size(diff2) != 0 or Map.size(diff12) != 0 do
+        ver_num = if keep, do: ver_num_delete(s.ver_num, rule_time), else: s.ver_num
+        ver_num = ver_num_delete(ver_num, last)
+        lastp1 = last + 1
+        ver_num = Map.put(ver_num, lastp1, if(keep, do: 2, else: 1))
 
-      # Valtozasok atvezetese.
-      diffs1 = diffs1 |> Enum.filter(fn {k, _d} -> Map.get(ver_num, k, 0) > 0 end) |> Enum.map(fn {k, d} -> {k, Mlmap.merge(d, diff1)} end)
-      diffs1 = [{last, diff1} | diffs1]
-      diffs2 = diffs2 |> Enum.filter(fn {k, _d} -> Map.get(ver_num, k, 0) > 0 end) |> Enum.map(fn {k, d} -> {k, Mlmap.merge(d, diff2)} end)
-      diffs2 = [{last, diff2} | diffs2]
-      diffs12 = diffs12 |> Enum.filter(fn {k, _d} -> Map.get(ver_num, k, 0) > 0 end) |> Enum.map(fn {k, d} -> {k, Mlmap.merge(d, diff12)} end)
-      diffs12 = [{last, diff12} | diffs12]
+        # Valtozasok atvezetese.
+        diffs1 = diffs1 |> Enum.filter(fn {k, _d} -> Map.get(ver_num, k, 0) > 0 end) |> Enum.map(fn {k, d} -> {k, Mlmap.merge(d, diff1)} end)
+        diffs1 = [{last, diff1} | diffs1]
+        diffs2 = diffs2 |> Enum.filter(fn {k, _d} -> Map.get(ver_num, k, 0) > 0 end) |> Enum.map(fn {k, d} -> {k, Mlmap.merge(d, diff2)} end)
+        diffs2 = [{last, diff2} | diffs2]
+        diffs12 = diffs12 |> Enum.filter(fn {k, _d} -> Map.get(ver_num, k, 0) > 0 end) |> Enum.map(fn {k, d} -> {k, Mlmap.merge(d, diff12)} end)
+        diffs12 = [{last, diff12} | diffs12]
 
-      mod1 = diff1 |> Map.keys() |> Enum.map(fn x -> {x, lastp1} end) |> Map.new()
-      mod2 = diff2 |> Map.keys() |> Enum.map(fn x -> {x, lastp1} end) |> Map.new()
-      mod12 = diff12 |> Map.keys() |> Enum.map(fn x -> {x, lastp1} end) |> Map.new()
+        mod1 = diff1 |> Map.keys() |> Enum.map(fn x -> {x, lastp1} end) |> Map.new()
+        mod2 = diff2 |> Map.keys() |> Enum.map(fn x -> {x, lastp1} end) |> Map.new()
+        mod12 = diff12 |> Map.keys() |> Enum.map(fn x -> {x, lastp1} end) |> Map.new()
 
-      %{
-        s
-        | diffs1: Map.new(diffs1),
-          diffs2: Map.new(diffs2),
-          diffs12: Map.new(diffs12),
-          origs1: Map.put(origs1, last, internal1),
-          origs2: Map.put(origs2, last, internal2),
-          origs12: Map.put(origs12, last, internal12),
-          last: lastp1,
-          rules_ver: if(keep, do: Map.put(s.rules_ver, name, lastp1), else: s.rules_ver),
-          # Ez biztosan uj itt.
-          ver_num: ver_num,
-          last_mod1: Map.merge(s.last_mod1, mod1),
-          last_mod2: Map.merge(s.last_mod2, mod2),
-          last_mod12: Map.merge(s.last_mod12, mod12),
-          internal1: stage.internal1,
-          internal2: stage.internal2,
-          internal12: stage.internal12
-      }
-    else
-      if keep, do: ver_num_bump(s, last, name, rule_time), else: s
-    end
+        %{
+          s
+          | diffs1: Map.new(diffs1),
+            diffs2: Map.new(diffs2),
+            diffs12: Map.new(diffs12),
+            origs1: Map.put(origs1, last, internal1),
+            origs2: Map.put(origs2, last, internal2),
+            origs12: Map.put(origs12, last, internal12),
+            last: lastp1,
+            rules_ver: if(keep, do: Map.put(s.rules_ver, name, lastp1), else: s.rules_ver),
+            # Ez biztosan uj itt.
+            ver_num: ver_num,
+            last_mod1: Map.merge(s.last_mod1, mod1),
+            last_mod2: Map.merge(s.last_mod2, mod2),
+            last_mod12: Map.merge(s.last_mod12, mod12),
+            internal1: stage.internal1,
+            internal2: stage.internal2,
+            internal12: stage.internal12
+        }
+      else
+        if keep, do: ver_num_bump(s, last, name, rule_time), else: s
+      end
+
+    # Az msgqueue kezelese fuggetlen attol, hogy valtoztatott-e vagy `!keep`,
+    # mivel siman lehet, hogy a hibas imperativ muveletet akarja jelezni csak,
+    # es a hiba miatt nem volt valtoztatas, es az ujracsinalas miatt a verziot sem akarja novelni.
+    Util.wife(s, burst == :checkout, do: %{s | msgqueue: stage.msgqueue ++ s.msgqueue, qlen: stage.qlen + s.qlen})
   end
 
   @spec ver_num_bump(t, Integer.t(), String.t(), Integer.t()) :: t
@@ -245,12 +251,17 @@ defmodule Store do
             # Logger.debug("stage: #{inspect(stage)}")
             stage
           end,
-          false
+          false,
+          :checkin
         )
       else
         s
       end
 
+    # Logger.info("sep")
+    # Logger.debug("store: #{inspect(s)}")
+    # A tobbi `:checkin`
+    s = full_burst(s, :checkin)
     # Logger.info("sep")
     # Logger.debug("store: #{inspect(s)}")
     s = full_burst(s, :cpu)
@@ -283,13 +294,18 @@ defmodule Store do
   ##              ##        ##   ##     ##    ##       ##    ##  ##   ### ##     ## ##                    ##
   ######          ######## ##     ##    ##    ######## ##     ## ##    ## ##     ## ########          ######
 
+  @doc """
+  A konstruktor `:checkin`-burst-ben fut,
+  de igazabol majdnem lenyegtelen, mert ahol ez fut,
+  ott mar elvileg ugyis azonnal futnia kell a `cycle`-nak.
+  """
   @spec install(
           t,
-          name :: Mulmap.iden(),
+          name :: String.t(),
           binding :: Rule.binding_list(),
-          observe1 :: [Mulmap.iden()],
-          observe2 :: [Mulmap.iden()],
-          observe12 :: [{Mulmap.iden(), Mulmap.iden()}],
+          observe1 :: [String.t()],
+          observe2 :: [String.t()],
+          observe12 :: [{String.t(), String.t()}],
           kernel :: Boolean.t(),
           burst :: Rule.burst(),
           function :: Rule.functionx(),
@@ -301,10 +317,10 @@ defmodule Store do
     first = Map.put(s.first, burst, 0)
     rules = Map.put(s.rules, name, rule)
     s = %{s | first: first, rules: rules}
-    if constructor != nil, do: execute_step(s, name, 0, rule.binding, constructor, false), else: s
+    if constructor != nil, do: execute_step(s, name, 0, rule.binding, constructor, false, :checkin), else: s
   end
 
-  @spec uninstall(t, Mulmap.iden()) :: t
+  @spec uninstall(t, String.t()) :: t
   def uninstall(s, name) do
     rules = s.rules
     rule = Map.get(rules, name, nil)
@@ -317,20 +333,20 @@ defmodule Store do
       ver_num = ver_num_delete(s.ver_num, rule_time)
       s = %{s | rules: rules, rules_ver: rules_ver, ver_num: ver_num}
       destructor = rule.destructor
-      if destructor != nil, do: execute_step(s, name, rule_time, rule.binding, destructor, false), else: s
+      if destructor != nil, do: execute_step(s, name, rule_time, rule.binding, destructor, false, :checkin), else: s
     else
       s
     end
   end
 
-  @spec add_to_queue(t, [any], any) :: t
+  @spec add_to_queue(t, [{String.t(), any, any}], any) :: t
   def add_to_queue(s, lst, val), do: %{s | msgqueue: [{lst, val, nil} | s.msgqueue], qlen: s.qlen + 1}
 
   @spec set_pid(t, String.t()) :: t
   def set_pid(s, pid), do: %{s | pid: pid}
 
-  @spec checkout_advanced(t) :: Boolean.t()
-  def checkout_advanced(s), do: s.last > s.first[:checkout]
+  @spec checkout_fallthrough(t) :: Boolean.t()
+  def checkout_fallthrough(s), do: s.qlen > 0
 
   # defmodule
 end

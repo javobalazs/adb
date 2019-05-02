@@ -47,7 +47,10 @@ defmodule Stage do
             internal12: nil,
             real: true,
             keep: true,
-            pid: nil
+            pid: nil,
+            msgqueue: [],
+            qlen: 0,
+            burst: :cpu
 
   @typedoc """
 
@@ -79,7 +82,10 @@ defmodule Stage do
           internal12: Mlmap.t(),
           real: Boolean.t(),
           keep: Boolean.t(),
-          pid: String.t()
+          pid: String.t(),
+          msgqueue: [{String.t(), any, any}],
+          qlen: Integer.t(),
+          burst: Rule.burst()
         }
 
   @type iden :: :iden | nil
@@ -123,9 +129,10 @@ defmodule Stage do
           internal2 :: Map.t(),
           internal12 :: Map.t(),
           real :: Boolean.t(),
-          pid :: String.t()
+          pid :: String.t(),
+          burst :: Rule.burst()
         ) :: t
-  def constructor(orig1, orig2, orig12, diff1, diff2, diff12, name, rule_ver, binding, last, internal1, internal2, internal12, real, pid) do
+  def constructor(orig1, orig2, orig12, diff1, diff2, diff12, name, rule_ver, binding, last, internal1, internal2, internal12, real, pid, burst) do
     %__MODULE__{
       orig1: orig1,
       orig2: orig2,
@@ -145,7 +152,8 @@ defmodule Stage do
       current12: internal12,
       real: real,
       keep: real,
-      pid: pid
+      pid: pid,
+      burst: burst
     }
   end
 
@@ -165,6 +173,13 @@ defmodule Stage do
   """
   @spec set_keep(t, Boolean.t()) :: t
   def set_keep(s, keep), do: %{s | keep: keep}
+
+  @doc """
+  Ha imperativ output-muvelet soran hiba keletkezik a checkout-ban,
+  azaz a mi szempontunkbol azonnali input, akkor itt kell jelezni.
+  """
+  @spec add_to_queue(t, [{String.t(), any, any}], any) :: t
+  def add_to_queue(s, lst, val), do: %{s | msgqueue: [{lst, val, nil} | s.msgqueue], qlen: s.qlen + 1}
 
   ######          ########  ##     ## ########          ######
   ##              ##     ## ##     ##    ##                 ##
