@@ -38,10 +38,11 @@ defmodule Rule do
   @typedoc """
   Nincs checkin, eleve olyan formaban varjuk el az inputot, hogy insert lehessen, es onnan cpu-szabalyokkal mar meg lehet csinalni a checkin-t.
 
+  - ':checkin': az input elokeszitese ugy, hogy mar hasznalhat belso tablakat, de hivhat imperativ muveleteket is.
   - `:cpu`: az igazi uzleti logika.
   - `:checkout`: az output elkeszitese, illetve cleanup.
   """
-  @type burst :: :cpu | :checkout
+  @type burst :: :cpu | :checkout | :checkin
   @type binding :: %{String.t() => String.t()}
   @type binding_list :: [{String.t(), String.t()}]
   @type functionx :: (Stage.t() -> Stage.t())
