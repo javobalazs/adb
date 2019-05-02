@@ -22,7 +22,7 @@ res = Task.async(fn -> sl = self(); send :tdb, ["sync", sl, inspect(sl), {"count
 ```elixir
 def deps do
   [
-    {:adb, git: "git@github.com:javobalazs/adb.git", tag: "0.2.2"},
+    {:adb, git: "git@github.com:javobalazs/adb.git", tag: "0.2.3"},
   ]
 end
 ```
