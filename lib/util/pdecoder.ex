@@ -63,8 +63,9 @@ defmodule Util.Pdecoder do
   @doc "A `__using__` macro, dokumentacioja a modul dokujaban."
   @spec __using__(fields: [atom] | Keyword.t(), type: any, only_fields: Boolean.t()) :: Macro.t()
   defmacro __using__(fields: mz, type: tp, only_fields: only_f) do
-    quote do
+    quote location: :keep do
       @behaviour Util.Pdecoder
+      require Util
 
       # Leszurjuk a mezoket es elokeszitunk meg forditasi idoben par valtozot.
       @mezok unquote(mz)
@@ -120,7 +121,7 @@ defmodule Util.Pdecoder do
             if only_f do
               quote do
                 if surplus != %{} do
-                  we("surplus_fields: #{inspect(surplus)}")
+                  Util.wf(SURPLUS_FIELDS)
                 else
                   check_callback(Map.merge(%__MODULE__{}, Map.new(x)), not_found, surplus)
                 end
@@ -132,7 +133,7 @@ defmodule Util.Pdecoder do
             end
           )
         else
-          we("got_not_map: #{inspect(mp)}")
+          Util.wf(GOT_NOT_MAP)
         end
       end
 
@@ -166,7 +167,7 @@ defmodule Util.Pdecoder do
 
       @doc unquote(@check_callback_doc)
       @spec check_callback_default(unquote(tp), Map.t(atom, any), Map.t(String.t(), any)) :: With.t(unquote(tp))
-      def check_callback_default(str, _not_found, _surplus), do: wo(str)
+      def check_callback_default(str, _not_found, _surplus), do: Util.wo(str)
 
       @spec check_callback(unquote(tp), Map.t(atom, any), Map.t(String.t(), any)) :: With.t(unquote(tp))
 
