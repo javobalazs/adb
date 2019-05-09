@@ -209,5 +209,12 @@ defmodule Util do
     end
   end
 
+  @doc """
+  Szoveg beszurasa, amit aztan figyelmen kivul hagyunk.
+  """
+  @spec comment(String.t()) :: Macro.t()
+  defmacro comment(_text) do
+  end
+
   # defmodule
 end
