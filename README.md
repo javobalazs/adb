@@ -158,6 +158,23 @@ config :logger, :console,
   metadata: [:line]
 ```
 
+## GlobalGenerator
+
+```elixir
+# Parancs:
+GlobalGenerator.fordit_overwrite(ValamilyenModul, %{param1: 1, param2: 43434, param3: [:a,:b,:c]})
+# Utana ez mind igaz.
+1 == ValamilyenModul.param1
+43434 == ValamilyenModul.param2
+[:a,:b,:c] == ValamilyenModul.param3
+# Ujabb parancs:
+GlobalGenerator.fordit_merge(ValamilyenModul, %{param4: :nemtudom, param2: "makimajom"})
+# Utana ez mind igaz.
+1 == ValamilyenModul.param1
+"makimajom" == ValamilyenModul.param2
+[:a,:b,:c] == ValamilyenModul.param3
+:nemtudom == ValamilyenModul.param4
+```
 ## Installation
 
 ```elixir
