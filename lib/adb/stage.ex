@@ -5,6 +5,7 @@ alias ADB.Rule
 defmodule Stage do
   @vsn "0.1.0"
 
+  require Mlmap
   # require Logger
 
   @moduledoc """
@@ -278,30 +279,21 @@ defmodule Stage do
 
         [map] ->
           Enum.reduce(val, {[], []}, fn {key, v}, {acc1, acc2} ->
-            case v do
-              %{__struct__: _} -> {[{[map, key], v, iden} | acc1], acc2}
-              x when is_map(x) -> {acc1, [{map, key, [], v, iden} | acc2]}
-              _ -> {[{[map, key], v, iden} | acc1], acc2}
+            Mlmap.casemap v do
+              {acc1, [{map, key, [], v, iden} | acc2]}
+            else
+              {[{[map, key], v, iden} | acc1], acc2}
             end
           end)
 
         _ ->
           Enum.reduce(val, {[], []}, fn {map, v2}, {acc1, acc2} ->
-            case v2 do
-              %{__struct__: _} ->
-                {[{[map], v2, iden} | acc1], acc2}
-
-              x when is_map(x) ->
-                Enum.reduce(v2, {acc1, acc2}, fn {key, v}, {acc1x, acc2x} ->
-                  case v do
-                    %{__struct__: _} -> {[{[map, key], v, iden} | acc1x], acc2x}
-                    x when is_map(x) -> {acc1x, [{map, key, [], v, iden} | acc2x]}
-                    _ -> {[{[map, key], v, iden} | acc1x], acc2x}
-                  end
-                end)
-
-              _ ->
-                {[{[map], v2, iden} | acc1], acc2}
+            Mlmap.casemap v2 do
+              Enum.reduce(v2, {acc1, acc2}, fn {key, v}, {acc1x, acc2x} ->
+                Mlmap.casemap(v, do: {acc1x, [{map, key, [], v, iden} | acc2x]}, else: {[{[map, key], v, iden} | acc1x], acc2x})
+              end)
+            else
+              {[{[map], v2, iden} | acc1], acc2}
             end
           end)
       end
@@ -365,30 +357,21 @@ defmodule Stage do
 
               [map] ->
                 Enum.reduce(val, {l1, l2}, fn {key, v}, {acc1, acc2} ->
-                  case v do
-                    %{__struct__: _} -> {[{[map, key], v, iden} | acc1], acc2}
-                    x when is_map(x) -> {acc1, [{map, key, [], v, iden} | acc2]}
-                    _ -> {[{[map, key], v, iden} | acc1], acc2}
+                  Mlmap.casemap v do
+                    {acc1, [{map, key, [], v, iden} | acc2]}
+                  else
+                    {[{[map, key], v, iden} | acc1], acc2}
                   end
                 end)
 
               _ ->
                 Enum.reduce(val, {l1, l2}, fn {map, v2}, {acc1, acc2} ->
-                  case v2 do
-                    %{__struct__: _} ->
-                      {[{[map], v2, iden} | acc1], acc2}
-
-                    x when is_map(x) ->
-                      Enum.reduce(v2, {acc1, acc2}, fn {key, v}, {acc1x, acc2x} ->
-                        case v do
-                          %{__struct__: _} -> {[{[map, key], v, iden} | acc1x], acc2x}
-                          x when is_map(x) -> {acc1x, [{map, key, [], v, iden} | acc2x]}
-                          _ -> {[{[map, key], v, iden} | acc1x], acc2x}
-                        end
-                      end)
-
-                    _ ->
-                      {[{[map], v2, iden} | acc1], acc2}
+                  Mlmap.casemap v2 do
+                    Enum.reduce(v2, {acc1, acc2}, fn {key, v}, {acc1x, acc2x} ->
+                      Mlmap.casemap(v, do: {acc1x, [{map, key, [], v, iden} | acc2x]}, else: {[{[map, key], v, iden} | acc1x], acc2x})
+                    end)
+                  else
+                    {[{[map], v2, iden} | acc1], acc2}
                   end
                 end)
             end
@@ -449,53 +432,6 @@ defmodule Stage do
 
   @spec ntrack_reduce_while(t, [any], a, Mlmap.red_while_fun(a)) :: a when a: var
   def ntrack_reduce_while(s, lst, acc, fnc), do: Mlmap.track_reduce_while(s.current1, s.stage1, s.internal1, lst, acc, fnc)
-
-  # @spec reduce(t, [any], any, (key :: any, event :: event, old :: any, new :: any, acc :: a -> {:cont, a} | {:halt, a}) :: a when a: var
-  # def reduce(s, lst, acc, fnc) do
-  #   orig = getm(s, :orig1, lst, %{})
-  #   diff = getm(s, :diff1, lst, %{})
-  #   start = getm(s, :current1, lst, %{})
-  #
-  #   case start do
-  #     %{__struct__: _} ->
-  #       acc
-  #
-  #     x when is_map(x) ->
-  #       first =
-  #         Enum.reduce_while(start, fn {k, v} ->
-  #           {event, ori} =
-  #             case Map.fetch(diff, k) do
-  #               :error ->
-  #                 {:same, v}
-  #
-  #               {:ok, _df} ->
-  #                 case Map.fetch(orig, k) do
-  #                   :error -> {:inserted, :undefined}
-  #                   {:ok, xori} -> {:changed, xori}
-  #                 end
-  #             end
-  #
-  #           fnc.(k, event, ori, v)
-  #         end)
-  #         |> Enum.filter(fn v -> v != :skip end)
-  #         |> Enum.map(fn {_, v} -> v end)
-  #
-  #       second =
-  #         diff
-  #         |> Enum.filter(fn {_k, v} -> v == :undefined end)
-  #         |> Enum.reduce([], fn {k, _}, acc ->
-  #           ori = Map.get(orig, k)
-  #           [fnc.(k, :deleted, ori, :undefined) | acc]
-  #         end)
-  #         |> Enum.filter(fn v -> v != :skip end)
-  #         |> Enum.map(fn {_, v} -> v end)
-  #
-  #       Enum.reverse(second, first)
-  #
-  #     _ ->
-  #       acc
-  #   end
-  # end
 
   ######          ##     ##    ###    ########   #######        ## ########  ######## ########  ##     ##  ######  ########  #######           ######
   ##              ###   ###   ## ##   ##     ## ##     ##      ##  ##     ## ##       ##     ## ##     ## ##    ## ##       ##     ##              ##
