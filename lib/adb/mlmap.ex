@@ -465,6 +465,9 @@ defmodule Mlmap do
   @type redfun(a) :: (key :: any, event :: nonunchanged, old :: any, diff :: any, new :: any, acc :: a -> a)
   @type red_while_fun(a) :: (key :: any, event :: nonunchanged, old :: any, diff :: any, new :: any, acc :: a -> {:cont, a} | {:halt, a})
 
+  @spec latest(nonunchanged, a, a) :: a when a: var
+  def latest(event, old, new), do: if(event == :deleted, do: old, else: new)
+
   @spec full(t | :undefined, t | :undefined, t | :undefined, [any], fullfun) :: [any]
   def full(orig, diff, curr, lst, fnc) do
     orig = get(orig, lst)
