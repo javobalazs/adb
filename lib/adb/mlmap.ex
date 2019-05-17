@@ -1,9 +1,92 @@
 alias ADB.Mlmap
 
 defmodule Mlmap do
-  @vsn "0.1.0"
+  @vsn "0.4.0"
+  @moduledoc """
+  Tobbszintu map-ek kezelese.
+
+  @vsn `"#{@vsn}"`
+  """
 
   @type t :: Map.t()
+
+  # require Logger
+
+  ######          ##     ## ######## #### ##       #### ######## ##    ##          ######
+  ##              ##     ##    ##     ##  ##        ##     ##     ##  ##               ##
+  ##              ##     ##    ##     ##  ##        ##     ##      ####                ##
+  ##              ##     ##    ##     ##  ##        ##     ##       ##                 ##
+  ##              ##     ##    ##     ##  ##        ##     ##       ##                 ##
+  ##              ##     ##    ##     ##  ##        ##     ##       ##                 ##
+  ######           #######     ##    #### ######## ####    ##       ##             ######
+
+  @doc """
+  Ha `expr` (egy valtozo) egy map (de nem struct), akkor `clause`, kulonben `other`.
+  ```elixir
+  x = casemap v, do: Map.get(v, key, nil), else: nil
+  ```
+  """
+  defmacro casemap(expr, do: clause, else: other) do
+    quote do
+      case unquote(expr) do
+        %{__struct__: _} -> unquote(other)
+        y when is_map(y) -> unquote(clause)
+        _ -> unquote(other)
+      end
+    end
+  end
+
+  @doc """
+  Ha `expr` egy map (de nem struct), akkor `clause`, kulonben `other`, es `xvar` fogja tartalmazni `expr` erteket.
+  Ez akkor hasznos, ha `expr` egy tenyleges kifejezes.
+  ```elixir
+  x = casemap Map.get(valami, kulcs, nil), mp, do: Map.get(mp, key, nil), else: nil
+  ```
+  """
+  defmacro casemap(expr, xvar, do: clause, else: other) do
+    quote do
+      case unquote(expr) do
+        %{__struct__: _} -> unquote(other)
+        unquote(xvar) when is_map(unquote(xvar)) -> unquote(clause)
+        _ -> unquote(other)
+      end
+    end
+  end
+
+  @doc """
+  Ha `expr` (egy valtozo) egy map (de nem struct), akkor `clause`, kulonben `other`.
+  Olvashatosagot javit, ha `other` valami trivialis es rovid.
+  ```elixir
+  x = casemapx v, nil, do: Map.get(v, key, nil)
+  ```
+  """
+  defmacro casemapx(expr, other, do: clause) do
+    quote do
+      case unquote(expr) do
+        %{__struct__: _} -> unquote(other)
+        y when is_map(y) -> unquote(clause)
+        _ -> unquote(other)
+      end
+    end
+  end
+
+  @doc """
+  Ha `expr` egy map (de nem struct), akkor `clause`, kulonben `other`, es `xvar` fogja tartalmazni `expr` erteket.
+  Ez akkor hasznos, ha `expr` egy tenyleges kifejezes.
+  Olvashatosagot javit, ha `other` valami trivialis es rovid.
+  ```elixir
+  x = casemapx Map.get(valami, kulcs, nil), nil, mp, do: Map.get(mp, key, nil)
+  ```
+  """
+  defmacro casemapx(expr, other, xvar, do: clause) do
+    quote do
+      case unquote(expr) do
+        %{__struct__: _} -> unquote(other)
+        unquote(xvar) when is_map(unquote(xvar)) -> unquote(clause)
+        _ -> unquote(other)
+      end
+    end
+  end
 
   ######          ##     ## ######## ########   ######   ########               ######   ######## ########          ######
   ##              ###   ### ##       ##     ## ##    ##  ##            ##      ##    ##  ##          ##                 ##
@@ -19,9 +102,11 @@ defmodule Mlmap do
 
   def resolver(_k, _v1, v2), do: v2
 
+  # @compile {:inline, merge: 2}
   @spec merge(t, t) :: t
   def merge(a, b), do: Map.merge(a, b, &resolver/3)
 
+  # @compile {:inline, get: 2, get: 3}
   @spec get(t | :undefined, [any], any) :: any
   def get(s, lst, defa \\ :undefined) do
     case s do
@@ -42,6 +127,22 @@ defmodule Mlmap do
     end
   end
 
+  # @compile {:inline, getp: 2, getp: 3}
+  @spec getp(t | :undefined, any, any) :: any
+  def getp(s, key, defa \\ :undefined) do
+    case s do
+      :undefined ->
+        defa
+
+      _ ->
+        case Map.fetch(s, key) do
+          {:ok, val} -> val
+          :error -> defa
+        end
+    end
+  end
+
+  # @compile {:inline, fetch: 2}
   @spec fetch(t | :undefined, [any]) :: {:ok, any} | :error
   def fetch(s, lst) do
     case s do
@@ -62,6 +163,15 @@ defmodule Mlmap do
     end
   end
 
+  # @compile {:inline, fetchp: 2}
+  @spec fetchp(t | :undefined, any) :: {:ok, any} | :error
+  def fetchp(s, key) do
+    case s do
+      :undefined -> :error
+      _ -> Map.fetch(s, key)
+    end
+  end
+
   ######          ##     ## ########  ########     ###    ######## ########          ######
   ##              ##     ## ##     ## ##     ##   ## ##      ##    ##                    ##
   ##              ##     ## ##     ## ##     ##  ##   ##     ##    ##                    ##
@@ -77,23 +187,17 @@ defmodule Mlmap do
         val
 
       [key | rest] ->
-        case s do
-          %{__struct__: _} ->
-            upd = make_from_lst(rest, val)
-            %{key => upd}
+        casemap s do
+          upd =
+            case Map.fetch(s, key) do
+              {:ok, map} -> update(map, rest, val)
+              :error -> make_from_lst(rest, val)
+            end
 
-          x when is_map(x) ->
-            upd =
-              case Map.fetch(s, key) do
-                {:ok, map} -> update(map, rest, val)
-                :error -> make_from_lst(rest, val)
-              end
-
-            Map.put(s, key, upd)
-
-          _ ->
-            upd = make_from_lst(rest, val)
-            %{key => upd}
+          Map.put(s, key, upd)
+        else
+          upd = make_from_lst(rest, val)
+          %{key => upd}
         end
     end
   end
@@ -105,23 +209,17 @@ defmodule Mlmap do
         merge(s, val)
 
       [key | rest] ->
-        case s do
-          %{__struct__: _} ->
-            upd = make_from_lst(rest, val)
-            %{key => upd}
+        casemap s do
+          upd =
+            case Map.fetch(s, key) do
+              {:ok, map} -> merdate(map, rest, val)
+              :error -> make_from_lst(rest, val)
+            end
 
-          x when is_map(x) ->
-            upd =
-              case Map.fetch(s, key) do
-                {:ok, map} -> merdate(map, rest, val)
-                :error -> make_from_lst(rest, val)
-              end
-
-            Map.put(s, key, upd)
-
-          _ ->
-            upd = make_from_lst(rest, val)
-            %{key => upd}
+          Map.put(s, key, upd)
+        else
+          upd = make_from_lst(rest, val)
+          %{key => upd}
         end
     end
   end
@@ -158,19 +256,14 @@ defmodule Mlmap do
         val
 
       [key | rest] ->
-        case s do
-          %{__struct__: _} ->
-            smake_from_lst(rest, val) |> evaluate_upd(%{}, key)
-
-          x when is_map(x) ->
-            case Map.fetch(s, key) do
-              {:ok, map} -> supdate_aux(map, rest, val)
-              :error -> smake_from_lst(rest, val)
-            end
-            |> evaluate_upd(s, key)
-
-          _ ->
-            smake_from_lst(rest, val) |> evaluate_upd(%{}, key)
+        casemap s do
+          case Map.fetch(s, key) do
+            {:ok, map} -> supdate_aux(map, rest, val)
+            :error -> smake_from_lst(rest, val)
+          end
+          |> evaluate_upd(s, key)
+        else
+          smake_from_lst(rest, val) |> evaluate_upd(%{}, key)
         end
     end
   end
@@ -191,19 +284,14 @@ defmodule Mlmap do
         if res == %{} and (val != %{} or s != %{}), do: :undefined, else: res
 
       [key | rest] ->
-        case s do
-          %{__struct__: _} ->
-            smake_from_lst(rest, val) |> evaluate_upd(%{}, key)
-
-          x when is_map(x) ->
-            case Map.fetch(s, key) do
-              {:ok, map} -> smerdate_aux(map, rest, val)
-              :error -> smake_from_lst(rest, val)
-            end
-            |> evaluate_upd(s, key)
-
-          _ ->
-            smake_from_lst(rest, val) |> evaluate_upd(%{}, key)
+        casemap s do
+          case Map.fetch(s, key) do
+            {:ok, map} -> smerdate_aux(map, rest, val)
+            :error -> smake_from_lst(rest, val)
+          end
+          |> evaluate_upd(s, key)
+        else
+          smake_from_lst(rest, val) |> evaluate_upd(%{}, key)
         end
     end
   end
@@ -291,7 +379,8 @@ defmodule Mlmap do
 
                 y when is_map(y) ->
                   if Map.size(v) == 0 do
-                    {k, %{}}
+                    # Helybenhagyas
+                    :undefined
                   else
                     v = filter(v, v2, meta)
                     if v == %{}, do: :undefined, else: {k, v}
@@ -330,31 +419,43 @@ defmodule Mlmap do
   @doc """
   A kimenete szurt flatlist.
   """
+  # @compile {:inline, map: 3}
   @spec map(t | :undefined, [any], (any, any -> any)) :: [any]
   def map(s, lst, fnc) do
-    case get(s, lst) do
-      %{__struct__: _} -> []
-      mp when is_map(mp) -> mp |> Enum.map(fn {k, v} -> fnc.(k, v) end) |> List.flatten() |> Enum.filter(fn x -> x != :bump end)
-      _ -> []
-    end
+    casemapx(get(s, lst), [], mp, do: mp |> Enum.map(fn {k, v} -> fnc.(k, v) end) |> List.flatten() |> Enum.filter(fn x -> x != :bump end))
   end
 
+  # @compile {:inline, reduce: 4}
   @spec reduce(t | :undefined, [any], a, (any, any, a -> a)) :: a when a: var
   def reduce(s, lst, acc, fnc) do
-    case get(s, lst) do
-      %{__struct__: _} -> acc
-      mp when is_map(mp) -> mp |> Enum.reduce(acc, fn {k, v}, acc -> fnc.(k, v, acc) end)
-      _ -> acc
-    end
+    casemapx(get(s, lst), acc, mp, do: mp |> Enum.reduce(acc, fn {k, v}, acc -> fnc.(k, v, acc) end))
   end
 
+  # @compile {:inline, reduce_while: 4}
   @spec reduce_while(t | :undefined, [any], a, (any, any, a -> {:cont, a} | {:halt, a})) :: a when a: var
   def reduce_while(s, lst, acc, fnc) do
-    case get(s, lst) do
-      %{__struct__: _} -> acc
-      mp when is_map(mp) -> mp |> Enum.reduce_while(acc, fn {k, v}, acc -> fnc.(k, v, acc) end)
-      _ -> acc
-    end
+    casemapx(get(s, lst), acc, mp, do: mp |> Enum.reduce_while(acc, fn {k, v}, acc -> fnc.(k, v, acc) end))
+  end
+
+  @doc """
+  Primitiv. A kimenete szurt flatlist.
+  """
+  # @compile {:inline, mapp: 2}
+  @spec mapp(t | :undefined, (any, any -> any)) :: [any]
+  def mapp(s, fnc) do
+    casemapx(s, [], do: s |> Enum.map(fn {k, v} -> fnc.(k, v) end) |> List.flatten() |> Enum.filter(fn x -> x != :bump end))
+  end
+
+  # @compile {:inline, reducep: 3}
+  @spec reducep(t | :undefined, a, (any, any, a -> a)) :: a when a: var
+  def reducep(s, acc, fnc) do
+    casemapx(s, acc, do: s |> Enum.reduce(acc, fn {k, v}, acc -> fnc.(k, v, acc) end))
+  end
+
+  # @compile {:inline, reduce_whilep: 3}
+  @spec reduce_whilep(t | :undefined, a, (any, any, a -> {:cont, a} | {:halt, a})) :: a when a: var
+  def reduce_whilep(s, acc, fnc) do
+    casemapx(s, acc, do: s |> Enum.reduce_while(acc, fn {k, v}, acc -> fnc.(k, v, acc) end))
   end
 
   @type nonunchanged :: :deleted | :inserted | :changed
@@ -370,110 +471,234 @@ defmodule Mlmap do
     diff = get(diff, lst)
     curr = get(curr, lst)
 
-    case curr do
-      %{__struct__: _} ->
-        []
+    casemapx curr, [] do
+      first =
+        Enum.map(curr, fn {k, v} ->
+          {event, ori, dif} =
+            case Map.fetch(diff, k) do
+              :error ->
+                {:unchanged, v, v}
 
-      x when is_map(x) ->
-        first =
-          Enum.map(curr, fn {k, v} ->
-            {event, ori, dif} =
-              case Map.fetch(diff, k) do
-                :error ->
-                  {:unchanged, v, v}
+              {:ok, dif} ->
+                case Map.fetch(orig, k) do
+                  :error -> {:inserted, :undefined, dif}
+                  {:ok, xori} -> {:changed, xori, dif}
+                end
+            end
 
-                {:ok, dif} ->
-                  case Map.fetch(orig, k) do
-                    :error -> {:inserted, :undefined, dif}
-                    {:ok, xori} -> {:changed, xori, dif}
-                  end
-              end
+          fnc.(k, event, ori, dif, v)
+        end)
+        |> Enum.filter(fn v -> v != :bump end)
 
-            fnc.(k, event, ori, dif, v)
-          end)
-          |> Enum.filter(fn v -> v != :bump end)
+      second =
+        diff
+        |> Enum.filter(fn {_k, v} -> v == :undefined end)
+        |> Enum.reduce([], fn {k, _}, acc ->
+          ori = Map.get(orig, k)
+          [fnc.(k, :deleted, ori, :undefined, :undefined) | acc]
+        end)
+        |> Enum.filter(fn v -> v != :bump end)
 
-        second =
-          diff
-          |> Enum.filter(fn {_k, v} -> v == :undefined end)
-          |> Enum.reduce([], fn {k, _}, acc ->
-            ori = Map.get(orig, k)
-            [fnc.(k, :deleted, ori, :undefined, :undefined) | acc]
-          end)
-          |> Enum.filter(fn v -> v != :bump end)
-
-        Enum.reverse(second, first)
-
-      _ ->
-        []
+      Enum.reverse(second, first)
     end
   end
 
-  @spec track(t | :undefined, t | :undefined, t | :undefined, [any], mapfun) :: [any]
-  def track(orig, diff, curr, lst, fnc) do
+  # @compile {:inline, trackp: 5}
+  @spec trackp(nonunchanged, t | :undefined, t | :undefined, t | :undefined, mapfun) :: [any]
+  def trackp(orig_event, orig, diff, curr, fnc) do
+    case orig_event do
+      :deleted ->
+        mapp(orig, fn k, v -> fnc.(k, :deleted, v, :undefined, :undefined) end)
 
-    orig = get(orig, lst)
-    curr = get(curr, lst)
+      :changed ->
+        mapp(diff, fn k, v ->
+          # Itt `orig` biztosan `Map`!
+          case v do
+            :undefined ->
+              # Itt bizotsan benne is van `orig`-ban!
+              fnc.(k, :deleted, Map.get(orig, k), :undefined, :undefined)
 
-    map(diff, lst, fn k, v ->
-      {event, ori, cur} =
-        case v do
-          :undefined ->
-            {:deleted, Map.get(orig, k), :undefined}
+            _ ->
+              case Map.fetch(orig, k) do
+                :error -> fnc.(k, :inserted, :undefined, v, v)
+                {:ok, v2x} -> fnc.(k, :changed, v2x, v, Map.get(curr, k))
+              end
+          end
+        end)
 
-          _ ->
-            case fetch(orig, [k]) do
-              :error -> {:inserted, :undefined, v}
-              {:ok, xori} -> {:changed, xori, Map.get(curr, k)}
-            end
-        end
-
-      fnc.(k, event, ori, v, cur)
-    end)
+      :inserted ->
+        mapp(curr, fn k, v -> fnc.(k, :inserted, :undefined, v, v) end)
+    end
   end
 
+  # @compile {:inline, track_reducep: 6}
+  @spec track_reducep(nonunchanged, t | :undefined, t | :undefined, t | :undefined, a, redfun(a)) :: a when a: var
+  def track_reducep(orig_event, orig, diff, curr, acc, fnc) do
+    case orig_event do
+      :deleted ->
+        reducep(orig, acc, fn k, v, acc -> fnc.(k, :deleted, v, :undefined, :undefined, acc) end)
+
+      :changed ->
+        reducep(diff, acc, fn k, v, acc ->
+          # Itt `orig` biztosan `Map`!
+          case v do
+            :undefined ->
+              # Itt bizotsan benne is van `orig`-ban!
+              fnc.(k, :deleted, Map.get(orig, k), :undefined, :undefined, acc)
+
+            _ ->
+              case Map.fetch(orig, k) do
+                :error -> fnc.(k, :inserted, :undefined, v, v, acc)
+                {:ok, v2x} -> fnc.(k, :changed, v2x, v, Map.get(curr, k), acc)
+              end
+          end
+        end)
+
+      :inserted ->
+        reducep(curr, acc, fn k, v, acc -> fnc.(k, :inserted, :undefined, v, v, acc) end)
+    end
+  end
+
+  # @compile {:inline, track_reduce_whilep: 6}
+  @spec track_reduce_whilep(nonunchanged, t | :undefined, t | :undefined, t | :undefined, a, red_while_fun(a)) :: a when a: var
+  def track_reduce_whilep(orig_event, orig, diff, curr, acc, fnc) do
+    case orig_event do
+      :deleted ->
+        reduce_whilep(orig, acc, fn k, v, acc -> fnc.(k, :deleted, v, :undefined, :undefined, acc) end)
+
+      :changed ->
+        reduce_whilep(diff, acc, fn k, v, acc ->
+          # Itt `orig` biztosan `Map`!
+          case v do
+            :undefined ->
+              # Itt bizotsan benne is van `orig`-ban!
+              fnc.(k, :deleted, Map.get(orig, k), :undefined, :undefined, acc)
+
+            _ ->
+              case Map.fetch(orig, k) do
+                :error -> fnc.(k, :inserted, :undefined, v, v, acc)
+                {:ok, v2x} -> fnc.(k, :changed, v2x, v, Map.get(curr, k), acc)
+              end
+          end
+        end)
+
+      :inserted ->
+        reduce_whilep(curr, acc, fn k, v, acc -> fnc.(k, :inserted, :undefined, v, v, acc) end)
+    end
+  end
+
+  # @compile {:inline, track: 5}
+  @spec track(t | :undefined, t | :undefined, t | :undefined, [any], mapfun) :: [any]
+  def track(orig, diff, curr, lst, fnc) do
+    orig = get(orig, lst)
+
+    case orig do
+      :undefined ->
+        # Itt `orig == :undefined` sajnos lehetseges. Pelda: `lst == ["data"] and k == "14400"`.
+        # Tovabba ez ujonnan kerult beszurasra.
+        # Mivel masodik szint, ezert aztan siman lehet, hogy a `k == "14400"` kulcs nem is letezett azelott.
+        # Ekkor viszont biztosan `:insert`.
+        map(diff, lst, fn k, v -> fnc.(k, :inserted, :undefined, v, v) end)
+
+      _ ->
+        curr = get(curr, lst)
+
+        map(diff, lst, fn k, v ->
+          case v do
+            # Itt `orig` biztosan `Map`!
+            :undefined ->
+              # Itt bizotsan benne is van `orig`-ban!
+              fnc.(k, :deleted, Map.get(orig, k), :undefined, :undefined)
+
+            _ ->
+              case Map.fetch(orig, k) do
+                :error ->
+                  fnc.(k, :inserted, :undefined, v, v)
+
+                {:ok, v2x} ->
+                  # Itt `Map.get(curr, k) == v` NEM BIZTOS, hogy igaz,
+                  # mert pl. ha az objektum egy struktura, akkor `v` siman lehet reszleges (kulonbseg)
+                  fnc.(k, :changed, v2x, v, Map.get(curr, k))
+              end
+          end
+        end)
+    end
+  end
+
+  # @compile {:inline, track_reduce: 6}
   @spec track_reduce(t | :undefined, t | :undefined, t | :undefined, [any], a, redfun(a)) :: a when a: var
   def track_reduce(orig, diff, curr, lst, acc, fnc) do
     orig = get(orig, lst)
-    curr = get(curr, lst)
 
-    reduce(diff, lst, acc, fn k, v, acc ->
-      {event, ori, cur} =
-        case v do
-          :undefined ->
-            {:deleted, Map.get(orig, k), :undefined}
+    case orig do
+      :undefined ->
+        # Itt `orig == :undefined` sajnos lehetseges. Pelda: `lst == ["data"] and k == "14400"`.
+        # Tovabba ez ujonnan kerult beszurasra.
+        # Mivel masodik szint, ezert aztan siman lehet, hogy a `k == "14400"` kulcs nem is letezett azelott.
+        # Ekkor viszont biztosan `:insert`.
+        reduce(diff, lst, acc, fn k, v, acc -> fnc.(k, :inserted, :undefined, v, v, acc) end)
 
-          _ ->
-            case fetch(orig, [k]) do
-              :error -> {:inserted, :undefined, v}
-              {:ok, xori} -> {:changed, xori, Map.get(curr, k)}
-            end
-        end
+      _ ->
+        curr = get(curr, lst)
 
-      fnc.(k, event, ori, v, cur, acc)
-    end)
+        reduce(diff, lst, acc, fn k, v, acc ->
+          case v do
+            # Itt `orig` biztosan `Map`!
+            :undefined ->
+              # Itt bizotsan benne is van `orig`-ban!
+              fnc.(k, :deleted, Map.get(orig, k), :undefined, :undefined, acc)
+
+            _ ->
+              case Map.fetch(orig, k) do
+                :error ->
+                  fnc.(k, :inserted, :undefined, v, v, acc)
+
+                {:ok, v2x} ->
+                  # Itt `Map.get(curr, k) == v` NEM BIZTOS, hogy igaz,
+                  # mert pl. ha az objektum egy struktura, akkor `v` siman lehet reszleges (kulonbseg)
+                  fnc.(k, :changed, v2x, v, Map.get(curr, k), acc)
+              end
+          end
+        end)
+    end
   end
 
+  # @compile {:inline, track_reduce_while: 6}
   @spec track_reduce_while(t | :undefined, t | :undefined, t | :undefined, [any], a, red_while_fun(a)) :: a when a: var
   def track_reduce_while(orig, diff, curr, lst, acc, fnc) do
     orig = get(orig, lst)
-    curr = get(curr, lst)
 
-    reduce_while(diff, lst, acc, fn k, v, acc ->
-      {event, ori, cur} =
-        case v do
-          :undefined ->
-            {:deleted, Map.get(orig, k), :undefined}
+    case orig do
+      :undefined ->
+        # Itt `orig == :undefined` sajnos lehetseges. Pelda: `lst == ["data"] and k == "14400"`.
+        # Tovabba ez ujonnan kerult beszurasra.
+        # Mivel masodik szint, ezert aztan siman lehet, hogy a `k == "14400"` kulcs nem is letezett azelott.
+        # Ekkor viszont biztosan `:insert`.
+        reduce_while(diff, lst, acc, fn k, v, acc -> fnc.(k, :inserted, :undefined, v, v, acc) end)
 
-          _ ->
-            case fetch(orig, [k]) do
-              :error -> {:inserted, :undefined, v}
-              {:ok, xori} -> {:changed, xori, Map.get(curr, k)}
-            end
-        end
+      _ ->
+        curr = get(curr, lst)
 
-      fnc.(k, event, ori, v, cur, acc)
-    end)
+        reduce_while(diff, lst, acc, fn k, v, acc ->
+          case v do
+            # Itt `orig` biztosan `Map`!
+            :undefined ->
+              # Itt bizotsan benne is van `orig`-ban!
+              fnc.(k, :deleted, Map.get(orig, k), :undefined, :undefined, acc)
+
+            _ ->
+              case Map.fetch(orig, k) do
+                :error ->
+                  fnc.(k, :inserted, :undefined, v, v, acc)
+
+                {:ok, v2x} ->
+                  # Itt `Map.get(curr, k) == v` NEM BIZTOS, hogy igaz,
+                  # mert pl. ha az objektum egy struktura, akkor `v` siman lehet reszleges (kulonbseg)
+                  fnc.(k, :changed, v2x, v, Map.get(curr, k), acc)
+              end
+          end
+        end)
+    end
   end
 
   # @spec reduce(t, [any], any, (key :: any, event :: event, old :: any, new :: any, acc :: a -> {:cont, a} | {:halt, a}) :: a when a: var
@@ -531,36 +756,51 @@ defmodule Mlmap do
   ##              ##     ## ##     ## ##        ##         ##      ##    ##  ##       ##     ## ##     ## ##    ## ##       ##                     ##
   ######          ##     ## ##     ## ##        ######### ##       ##     ## ######## ########   #######   ######  ######## #########          ######
 
+  # @compile {:inline, map2: 3}
   @spec map2(t | :undefined, [any], (any, any, any -> any)) :: [any]
   def map2(s, lst, fnc) do
     map(s, lst, fn k, v ->
-      case v do
-        %{__struct__: _} -> :bump
-        x when is_map(x) -> v |> Enum.map(fn {vk, vv} -> fnc.(k, vk, vv) end)
-        _ -> :bump
-      end
+      mapp(v, &fnc.(k, &1, &2))
     end)
   end
 
+  # @compile {:inline, reduce2: 4}
   @spec reduce2(t | :undefined, [any], a, (any, any, any, a -> a)) :: a when a: var
   def reduce2(s, lst, acc, fnc) do
     reduce(s, lst, acc, fn k, v, acc ->
-      case v do
-        %{__struct__: _} -> acc
-        x when is_map(x) -> v |> Enum.reduce(acc, fn {vk, vv}, acc -> fnc.(k, vk, vv, acc) end)
-        _ -> acc
-      end
+      reducep(v, acc, &fnc.(k, &1, &2, &3))
     end)
   end
 
+  # @compile {:inline, reduce_while2: 4}
   @spec reduce_while2(t | :undefined, [any], a, (any, any, any, a -> {:cont, a} | {:halt, a})) :: a when a: var
   def reduce_while2(s, lst, acc, fnc) do
     reduce_while(s, lst, acc, fn k, v, acc ->
-      case v do
-        %{__struct__: _} -> acc
-        x when is_map(x) -> v |> Enum.reduce_while(acc, fn {vk, vv}, acc -> fnc.(k, vk, vv, acc) end)
-        _ -> acc
-      end
+      reduce_whilep(v, acc, &fnc.(k, &1, &2, &3))
+    end)
+  end
+
+  # @compile {:inline, mapp2: 2}
+  @spec mapp2(t | :undefined, (any, any, any -> any)) :: [any]
+  def mapp2(s, fnc) do
+    mapp(s, fn k, v ->
+      mapp(v, &fnc.(k, &1, &2))
+    end)
+  end
+
+  # @compile {:inline, reducep2: 3}
+  @spec reducep2(t | :undefined, a, (any, any, any, a -> a)) :: a when a: var
+  def reducep2(s, acc, fnc) do
+    reducep(s, acc, fn k, v, acc ->
+      reducep(v, acc, &fnc.(k, &1, &2, &3))
+    end)
+  end
+
+  # @compile {:inline, reduce_whilep2: 3}
+  @spec reduce_whilep2(t | :undefined, a, (any, any, any, a -> {:cont, a} | {:halt, a})) :: a when a: var
+  def reduce_whilep2(s, acc, fnc) do
+    reduce_whilep(s, acc, fn k, v, acc ->
+      reduce_whilep(v, acc, &fnc.(k, &1, &2, &3))
     end)
   end
 
@@ -568,69 +808,51 @@ defmodule Mlmap do
   @type redfun2(a) :: (key1 :: any, key2 :: any, event :: nonunchanged, old :: any, diff :: any, new :: any, acc :: a -> a)
   @type red_while_fun2(a) :: (key1 :: any, key2 :: any, event :: nonunchanged, old :: any, diff :: any, new :: any, acc :: a -> {:cont, a} | {:halt, a})
 
+  # @compile {:inline, track2: 5}
   @spec track2(t | :undefined, t | :undefined, t | :undefined, [any], mapfun2) :: [any]
   def track2(orig, diff, curr, lst, fnc) do
-    orig = get(orig, lst)
-    curr = get(curr, lst)
-
-    map2(diff, lst, fn k1, k2, v ->
-      {event, ori, cur} =
-        case v do
-          :undefined ->
-            {:deleted, get(orig, [k1, k2]), :undefined}
-
-          _ ->
-            case fetch(orig, [k1, k2]) do
-              :error -> {:inserted, :undefined, v}
-              {:ok, xori} -> {:changed, xori, get(curr, [k1, k2])}
-            end
-        end
-
-      fnc.(k1, k2, event, ori, v, cur)
+    track(orig, diff, curr, lst, fn k, event, ori, v, cur ->
+      trackp(event, ori, v, cur, &{fnc.(k, &1, &2, &3, &4, &5)})
     end)
   end
 
+  # @compile {:inline, track_reduce2: 6}
   @spec track_reduce2(t | :undefined, t | :undefined, t | :undefined, [any], a, redfun2(a)) :: a when a: var
   def track_reduce2(orig, diff, curr, lst, acc, fnc) do
-    orig = get(orig, lst)
-    curr = get(curr, lst)
-
-    reduce2(diff, lst, acc, fn k1, k2, v, acc ->
-      {event, ori, cur} =
-        case v do
-          :undefined ->
-            {:deleted, get(orig, [k1, k2]), :undefined}
-
-          _ ->
-            case fetch(orig, [k1, k2]) do
-              :error -> {:inserted, :undefined, v}
-              {:ok, xori} -> {:changed, xori, get(curr, [k1, k2])}
-            end
-        end
-
-      fnc.(k1, k2, event, ori, v, cur, acc)
+    track_reduce(orig, diff, curr, lst, acc, fn k, event, ori, v, cur, acc ->
+      track_reducep(event, ori, v, cur, acc, &{fnc.(k, &1, &2, &3, &4, &5, &6)})
     end)
   end
 
+  # @compile {:inline, track_reduce_while2: 6}
   @spec track_reduce_while2(t | :undefined, t | :undefined, t | :undefined, [any], a, red_while_fun2(a)) :: a when a: var
   def track_reduce_while2(orig, diff, curr, lst, acc, fnc) do
-    orig = get(orig, lst)
-    curr = get(curr, lst)
+    track_reduce_while(orig, diff, curr, lst, acc, fn k, event, ori, v, cur, acc ->
+      track_reduce_whilep(event, ori, v, cur, acc, &{fnc.(k, &1, &2, &3, &4, &5, &6)})
+    end)
+  end
 
-    reduce_while2(diff, lst, acc, fn k1, k2, v, acc ->
-      {event, ori, cur} =
-        case v do
-          :undefined ->
-            {:deleted, get(orig, [k1, k2]), :undefined}
+  # @compile {:inline, trackp2: 5}
+  @spec trackp2(nonunchanged, t | :undefined, t | :undefined, t | :undefined, mapfun2) :: [any]
+  def trackp2(oevent, orig, diff, curr, fnc) do
+    trackp(oevent, orig, diff, curr, fn k, event, ori, v, cur ->
+      trackp(event, ori, v, cur, &{fnc.(k, &1, &2, &3, &4, &5)})
+    end)
+  end
 
-          _ ->
-            case fetch(orig, [k1, k2]) do
-              :error -> {:inserted, :undefined, v}
-              {:ok, xori} -> {:changed, xori, get(curr, [k1, k2])}
-            end
-        end
+  # @compile {:inline, track_reducep2: 6}
+  @spec track_reducep2(nonunchanged, t | :undefined, t | :undefined, t | :undefined, a, redfun2(a)) :: a when a: var
+  def track_reducep2(oevent, orig, diff, curr, acc, fnc) do
+    track_reducep(oevent, orig, diff, curr, acc, fn k, event, ori, v, cur, acc ->
+      track_reducep(event, ori, v, cur, acc, &{fnc.(k, &1, &2, &3, &4, &5, &6)})
+    end)
+  end
 
-      fnc.(k1, k2, event, ori, v, cur, acc)
+  # @compile {:inline, track_reduce_while2: 6}
+  @spec track_reduce_whilep2(nonunchanged, t | :undefined, t | :undefined, t | :undefined, a, red_while_fun2(a)) :: a when a: var
+  def track_reduce_whilep2(oevent, orig, diff, curr, acc, fnc) do
+    track_reduce_whilep(oevent, orig, diff, curr, acc, fn k, event, ori, v, cur, acc ->
+      track_reduce_whilep(event, ori, v, cur, acc, &{fnc.(k, &1, &2, &3, &4, &5, &6)})
     end)
   end
 
@@ -642,36 +864,51 @@ defmodule Mlmap do
   ##              ##     ## ##     ## ##        ##     ##  ##      ##    ##  ##       ##     ## ##     ## ##    ## ##       ##     ##              ##
   ######          ##     ## ##     ## ##         #######  ##       ##     ## ######## ########   #######   ######  ########  #######           ######
 
+  # @compile {:inline, map3: 3}
   @spec map3(t | :undefined, [any], (any, any, any, any -> any)) :: [any]
   def map3(s, lst, fnc) do
-    map2(s, lst, fn k1, k2, v ->
-      case v do
-        %{__struct__: _} -> :bump
-        x when is_map(x) -> v |> Enum.map(fn {vk, vv} -> fnc.(k1, k2, vk, vv) end)
-        _ -> :bump
-      end
+    map(s, lst, fn k, v ->
+      mapp2(v, &fnc.(k, &1, &2, &3))
     end)
   end
 
+  # @compile {:inline, reduce3: 4}
   @spec reduce3(t | :undefined, [any], a, (any, any, any, any, a -> a)) :: a when a: var
   def reduce3(s, lst, acc, fnc) do
-    reduce2(s, lst, acc, fn k1, k2, v, acc ->
-      case v do
-        %{__struct__: _} -> acc
-        x when is_map(x) -> v |> Enum.reduce(acc, fn {vk, vv}, acc -> fnc.(k1, k2, vk, vv, acc) end)
-        _ -> acc
-      end
+    reduce(s, lst, acc, fn k, v, acc ->
+      reducep2(v, acc, &fnc.(k, &1, &2, &3, &4))
     end)
   end
 
+  # @compile {:inline, reduce_while3: 4}
   @spec reduce_while3(t | :undefined, [any], a, (any, any, any, any, a -> {:cont, a} | {:halt, a})) :: a when a: var
   def reduce_while3(s, lst, acc, fnc) do
-    reduce_while2(s, lst, acc, fn k1, k2, v, acc ->
-      case v do
-        %{__struct__: _} -> acc
-        x when is_map(x) -> v |> Enum.reduce_while(acc, fn {vk, vv}, acc -> fnc.(k1, k2, vk, vv, acc) end)
-        _ -> acc
-      end
+    reduce_while(s, lst, acc, fn k, v, acc ->
+      reduce_whilep2(v, acc, &fnc.(k, &1, &2, &3, &4))
+    end)
+  end
+
+  # @compile {:inline, mapp3: 2}
+  @spec mapp3(t | :undefined, (any, any, any, any -> any)) :: [any]
+  def mapp3(s, fnc) do
+    mapp(s, fn k, v ->
+      mapp2(v, &fnc.(k, &1, &2, &3))
+    end)
+  end
+
+  # @compile {:inline, reducep3: 3}
+  @spec reducep3(t | :undefined, a, (any, any, any, any, a -> a)) :: a when a: var
+  def reducep3(s, acc, fnc) do
+    reducep(s, acc, fn k, v, acc ->
+      reducep2(v, acc, &fnc.(k, &1, &2, &3, &4))
+    end)
+  end
+
+  # @compile {:inline, reduce_whilep3: 3}
+  @spec reduce_whilep3(t | :undefined, a, (any, any, any, any, a -> {:cont, a} | {:halt, a})) :: a when a: var
+  def reduce_whilep3(s, acc, fnc) do
+    reduce_whilep(s, acc, fn k, v, acc ->
+      reduce_whilep2(v, acc, &fnc.(k, &1, &2, &3, &4))
     end)
   end
 
@@ -679,69 +916,51 @@ defmodule Mlmap do
   @type redfun3(a) :: (key1 :: any, key2 :: any, key3 :: any, event :: nonunchanged, old :: any, diff :: any, new :: any, acc :: a -> a)
   @type red_while_fun3(a) :: (key1 :: any, key2 :: any, key3 :: any, event :: nonunchanged, old :: any, diff :: any, new :: any, acc :: a -> {:cont, a} | {:halt, a})
 
+  # @compile {:inline, track3: 5}
   @spec track3(t | :undefined, t | :undefined, t | :undefined, [any], mapfun3) :: [any]
   def track3(orig, diff, curr, lst, fnc) do
-    orig = get(orig, lst)
-    curr = get(curr, lst)
-
-    map3(diff, lst, fn k1, k2, k3, v ->
-      {event, ori, cur} =
-        case v do
-          :undefined ->
-            {:deleted, get(orig, [k1, k2, k3]), :undefined}
-
-          _ ->
-            case fetch(orig, [k1, k2, k3]) do
-              :error -> {:inserted, :undefined, v}
-              {:ok, xori} -> {:changed, xori, get(curr, [k1, k2, k3])}
-            end
-        end
-
-      fnc.(k1, k2, k3, event, ori, v, cur)
+    track(orig, diff, curr, lst, fn k, event, ori, v, cur ->
+      trackp2(event, ori, v, cur, &{fnc.(k, &1, &2, &3, &4, &5, &6)})
     end)
   end
 
+  # @compile {:inline, track_reduce3: 6}
   @spec track_reduce3(t | :undefined, t | :undefined, t | :undefined, [any], a, redfun3(a)) :: a when a: var
   def track_reduce3(orig, diff, curr, lst, acc, fnc) do
-    orig = get(orig, lst)
-    curr = get(curr, lst)
-
-    reduce3(diff, lst, acc, fn k1, k2, k3, v, acc ->
-      {event, ori, cur} =
-        case v do
-          :undefined ->
-            {:deleted, get(orig, [k1, k2, k3]), :undefined}
-
-          _ ->
-            case fetch(orig, [k1, k2, k3]) do
-              :error -> {:inserted, :undefined, v}
-              {:ok, xori} -> {:changed, xori, get(curr, [k1, k2, k3])}
-            end
-        end
-
-      fnc.(k1, k2, k3, event, ori, v, cur, acc)
+    track_reduce(orig, diff, curr, lst, acc, fn k, event, ori, v, cur, acc ->
+      track_reducep2(event, ori, v, cur, acc, &{fnc.(k, &1, &2, &3, &4, &5, &6, &7)})
     end)
   end
 
+  # @compile {:inline, track_reduce_while3: 6}
   @spec track_reduce_while3(t | :undefined, t | :undefined, t | :undefined, [any], a, red_while_fun3(a)) :: a when a: var
   def track_reduce_while3(orig, diff, curr, lst, acc, fnc) do
-    orig = get(orig, lst)
-    curr = get(curr, lst)
+    track_reduce_while(orig, diff, curr, lst, acc, fn k, event, ori, v, cur, acc ->
+      track_reduce_whilep2(event, ori, v, cur, acc, &{fnc.(k, &1, &2, &3, &4, &5, &6, &7)})
+    end)
+  end
 
-    reduce_while3(diff, lst, acc, fn k1, k2, k3, v, acc ->
-      {event, ori, cur} =
-        case v do
-          :undefined ->
-            {:deleted, get(orig, [k1, k2, k3]), :undefined}
+  # @compile {:inline, trackp3: 5}
+  @spec trackp3(nonunchanged, t | :undefined, t | :undefined, t | :undefined, mapfun3) :: [any]
+  def trackp3(oevent, orig, diff, curr, fnc) do
+    trackp(oevent, orig, diff, curr, fn k, event, ori, v, cur ->
+      trackp2(event, ori, v, cur, &{fnc.(k, &1, &2, &3, &4, &5, &6)})
+    end)
+  end
 
-          _ ->
-            case fetch(orig, [k1, k2, k3]) do
-              :error -> {:inserted, :undefined, v}
-              {:ok, xori} -> {:changed, xori, get(curr, [k1, k2, k3])}
-            end
-        end
+  # @compile {:inline, track_reducep3: 6}
+  @spec track_reducep3(nonunchanged, t | :undefined, t | :undefined, t | :undefined, a, redfun3(a)) :: a when a: var
+  def track_reducep3(oevent, orig, diff, curr, acc, fnc) do
+    track_reducep(oevent, orig, diff, curr, acc, fn k, event, ori, v, cur, acc ->
+      track_reducep2(event, ori, v, cur, acc, &{fnc.(k, &1, &2, &3, &4, &5, &6, &7)})
+    end)
+  end
 
-      fnc.(k1, k2, k3, event, ori, v, cur, acc)
+  # @compile {:inline, track_reduce_while3: 6}
+  @spec track_reduce_whilep3(nonunchanged, t | :undefined, t | :undefined, t | :undefined, a, red_while_fun3(a)) :: a when a: var
+  def track_reduce_whilep3(oevent, orig, diff, curr, acc, fnc) do
+    track_reduce_whilep(oevent, orig, diff, curr, acc, fn k, event, ori, v, cur, acc ->
+      track_reduce_whilep2(event, ori, v, cur, acc, &{fnc.(k, &1, &2, &3, &4, &5, &6, &7)})
     end)
   end
 
@@ -753,36 +972,51 @@ defmodule Mlmap do
   ##              ##     ## ##     ## ##              ##   ##      ##    ##  ##       ##     ## ##     ## ##    ## ##             ##               ##
   ######          ##     ## ##     ## ##              ##  ##       ##     ## ######## ########   #######   ######  ########       ##           ######
 
+  # @compile {:inline, map4: 3}
   @spec map4(t | :undefined, [any], (any, any, any, any, any -> any)) :: [any]
   def map4(s, lst, fnc) do
-    map3(s, lst, fn k1, k2, k3, v ->
-      case v do
-        %{__struct__: _} -> :bump
-        x when is_map(x) -> v |> Enum.map(fn {vk, vv} -> fnc.(k1, k2, k3, vk, vv) end)
-        _ -> :bump
-      end
+    map(s, lst, fn k, v ->
+      mapp3(v, &fnc.(k, &1, &2, &3, &4))
     end)
   end
 
+  # @compile {:inline, reduce4: 4}
   @spec reduce4(t | :undefined, [any], a, (any, any, any, any, any, a -> a)) :: a when a: var
   def reduce4(s, lst, acc, fnc) do
-    reduce3(s, lst, acc, fn k1, k2, k3, v, acc ->
-      case v do
-        %{__struct__: _} -> acc
-        x when is_map(x) -> v |> Enum.reduce(acc, fn {vk, vv}, acc -> fnc.(k1, k2, k3, vk, vv, acc) end)
-        _ -> acc
-      end
+    reduce(s, lst, acc, fn k, v, acc ->
+      reducep3(v, acc, &fnc.(k, &1, &2, &3, &4, &5))
     end)
   end
 
+  # @compile {:inline, reduce_while4: 4}
   @spec reduce_while4(t | :undefined, [any], a, (any, any, any, any, any, a -> {:cont, a} | {:halt, a})) :: a when a: var
   def reduce_while4(s, lst, acc, fnc) do
-    reduce_while3(s, lst, acc, fn k1, k2, k3, v, acc ->
-      case v do
-        %{__struct__: _} -> acc
-        x when is_map(x) -> v |> Enum.reduce_while(acc, fn {vk, vv}, acc -> fnc.(k1, k2, k3, vk, vv, acc) end)
-        _ -> acc
-      end
+    reduce_while(s, lst, acc, fn k, v, acc ->
+      reduce_whilep3(v, acc, &fnc.(k, &1, &2, &3, &4, &5))
+    end)
+  end
+
+  # @compile {:inline, mapp4: 2}
+  @spec mapp4(t | :undefined, (any, any, any, any, any -> any)) :: [any]
+  def mapp4(s, fnc) do
+    mapp(s, fn k, v ->
+      mapp3(v, &fnc.(k, &1, &2, &3, &4))
+    end)
+  end
+
+  # @compile {:inline, reducep4: 3}
+  @spec reducep4(t | :undefined, a, (any, any, any, any, any, a -> a)) :: a when a: var
+  def reducep4(s, acc, fnc) do
+    reducep(s, acc, fn k, v, acc ->
+      reducep3(v, acc, &fnc.(k, &1, &2, &3, &4, &5))
+    end)
+  end
+
+  # @compile {:inline, reduce_whilep4: 3}
+  @spec reduce_whilep4(t | :undefined, a, (any, any, any, any, any, a -> {:cont, a} | {:halt, a})) :: a when a: var
+  def reduce_whilep4(s, acc, fnc) do
+    reduce_whilep(s, acc, fn k, v, acc ->
+      reduce_whilep3(v, acc, &fnc.(k, &1, &2, &3, &4, &5))
     end)
   end
 
@@ -790,69 +1024,51 @@ defmodule Mlmap do
   @type redfun4(a) :: (key1 :: any, key2 :: any, key3 :: any, key4 :: any, event :: nonunchanged, old :: any, diff :: any, new :: any, acc :: a -> a)
   @type red_while_fun4(a) :: (key1 :: any, key2 :: any, key3 :: any, key4 :: any, event :: nonunchanged, old :: any, diff :: any, new :: any, acc :: a -> {:cont, a} | {:halt, a})
 
+  # @compile {:inline, track4: 5}
   @spec track4(t | :undefined, t | :undefined, t | :undefined, [any], mapfun4) :: [any]
   def track4(orig, diff, curr, lst, fnc) do
-    orig = get(orig, lst)
-    curr = get(curr, lst)
-
-    map4(diff, lst, fn k1, k2, k3, k4, v ->
-      {event, ori, cur} =
-        case v do
-          :undefined ->
-            {:deleted, get(orig, [k1, k2, k3, k4]), :undefined}
-
-          _ ->
-            case fetch(orig, [k1, k2, k3, k4]) do
-              :error -> {:inserted, :undefined, v}
-              {:ok, xori} -> {:changed, xori, get(curr, [k1, k2, k3, k4])}
-            end
-        end
-
-      fnc.(k1, k2, k3, k4, event, ori, v, cur)
+    track(orig, diff, curr, lst, fn k, event, ori, v, cur ->
+      trackp3(event, ori, v, cur, &{fnc.(k, &1, &2, &3, &4, &5, &6, &7)})
     end)
   end
 
+  # @compile {:inline, track_reduce4: 6}
   @spec track_reduce4(t | :undefined, t | :undefined, t | :undefined, [any], a, redfun4(a)) :: a when a: var
   def track_reduce4(orig, diff, curr, lst, acc, fnc) do
-    orig = get(orig, lst)
-    curr = get(curr, lst)
-
-    reduce4(diff, lst, acc, fn k1, k2, k3, k4, v, acc ->
-      {event, ori, cur} =
-        case v do
-          :undefined ->
-            {:deleted, get(orig, [k1, k2, k3, k4]), :undefined}
-
-          _ ->
-            case fetch(orig, [k1, k2, k3, k4]) do
-              :error -> {:inserted, :undefined, v}
-              {:ok, xori} -> {:changed, xori, get(curr, [k1, k2, k3, k4])}
-            end
-        end
-
-      fnc.(k1, k2, k3, k4, event, ori, v, cur, acc)
+    track_reduce(orig, diff, curr, lst, acc, fn k, event, ori, v, cur, acc ->
+      track_reducep3(event, ori, v, cur, acc, &{fnc.(k, &1, &2, &3, &4, &5, &6, &7, &8)})
     end)
   end
 
+  # @compile {:inline, track_reduce_while4: 6}
   @spec track_reduce_while4(t | :undefined, t | :undefined, t | :undefined, [any], a, red_while_fun4(a)) :: a when a: var
   def track_reduce_while4(orig, diff, curr, lst, acc, fnc) do
-    orig = get(orig, lst)
-    curr = get(curr, lst)
+    track_reduce_while(orig, diff, curr, lst, acc, fn k, event, ori, v, cur, acc ->
+      track_reduce_whilep3(event, ori, v, cur, acc, &{fnc.(k, &1, &2, &3, &4, &5, &6, &7, &8)})
+    end)
+  end
 
-    reduce_while4(diff, lst, acc, fn k1, k2, k3, k4, v, acc ->
-      {event, ori, cur} =
-        case v do
-          :undefined ->
-            {:deleted, get(orig, [k1, k2, k3, k4]), :undefined}
+  # @compile {:inline, trackp4: 5}
+  @spec trackp4(nonunchanged, t | :undefined, t | :undefined, t | :undefined, mapfun4) :: [any]
+  def trackp4(oevent, orig, diff, curr, fnc) do
+    trackp(oevent, orig, diff, curr, fn k, event, ori, v, cur ->
+      trackp3(event, ori, v, cur, &{fnc.(k, &1, &2, &3, &4, &5, &6, &7)})
+    end)
+  end
 
-          _ ->
-            case fetch(orig, [k1, k2, k3, k4]) do
-              :error -> {:inserted, :undefined, v}
-              {:ok, xori} -> {:changed, xori, get(curr, [k1, k2, k3, k4])}
-            end
-        end
+  # @compile {:inline, track_reducep4: 6}
+  @spec track_reducep4(nonunchanged, t | :undefined, t | :undefined, t | :undefined, a, redfun4(a)) :: a when a: var
+  def track_reducep4(oevent, orig, diff, curr, acc, fnc) do
+    track_reducep(oevent, orig, diff, curr, acc, fn k, event, ori, v, cur, acc ->
+      track_reducep3(event, ori, v, cur, acc, &{fnc.(k, &1, &2, &3, &4, &5, &6, &7, &8)})
+    end)
+  end
 
-      fnc.(k1, k2, k3, k4, event, ori, v, cur, acc)
+  # @compile {:inline, track_reduce_while4: 6}
+  @spec track_reduce_whilep4(nonunchanged, t | :undefined, t | :undefined, t | :undefined, a, red_while_fun4(a)) :: a when a: var
+  def track_reduce_whilep4(oevent, orig, diff, curr, acc, fnc) do
+    track_reduce_whilep(oevent, orig, diff, curr, acc, fn k, event, ori, v, cur, acc ->
+      track_reduce_whilep3(event, ori, v, cur, acc, &{fnc.(k, &1, &2, &3, &4, &5, &6, &7, &8)})
     end)
   end
 
