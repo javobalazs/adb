@@ -141,6 +141,8 @@ defmodule Store do
     stage = function.(stage)
     # Logger.warn(" store: #{name} =====stage1======> #{inspect stage.stage1, pretty: true} ")
     # Logger.warn(" store: #{name} =====internal======> #{inspect internal1, pretty: true} ")
+
+    # Megtevesztes! Itt az internal* megegyezik a start*-gal a stage-ben.
     diff1 = stage.stage1 |> Mlmap.filter(internal1)
     diff2 = stage.stage2 |> Mlmap.filter(internal2)
     diff12 = stage.stage12 |> Mlmap.filter(internal12)
@@ -317,7 +319,7 @@ defmodule Store do
     first = Map.put(s.first, burst, 0)
     rules = Map.put(s.rules, name, rule)
     s = %{s | first: first, rules: rules}
-    if constructor != nil, do: execute_step(s, name, 0, rule.binding, constructor, false, :checkin), else: s
+    if constructor != nil, do: execute_step(s, name, 0, rule.binding, constructor, true, :checkin), else: s
   end
 
   @spec uninstall(t, String.t()) :: t
