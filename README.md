@@ -180,7 +180,7 @@ GlobalGenerator.fordit_merge(ValamilyenModul, %{param4: :nemtudom, param2: "maki
 ```elixir
 def deps do
   [
-    {:adb, git: "git@github.com:javobalazs/adb.git", tag: "0.2.4"},
+    {:adb, git: "git@github.com:javobalazs/adb.git", tag: "0.2.5"},
   ]
 end
 ```
