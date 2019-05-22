@@ -5,10 +5,58 @@ defmodule Mlmap do
   @moduledoc """
   Tobbszintu map-ek kezelese.
 
+  a = %{}
+  a = ADB.Mlmap.update(a, ["spanning", "folder", "show"], true)
+  a = ADB.Mlmap.update(a, ["spanning", "c1", "folder"], true)
+  a = ADB.Mlmap.update(a, ["spanning", "c2", "folder"], true)
+  a = ADB.Mlmap.update(a, ["spanning", "v11", "c1"], true)
+  a = ADB.Mlmap.update(a, ["spanning", "v12", "c1"], true)
+  # a = ADB.Mlmap.update(a, ["spanning", "v12", "c2"], true)
+  # a = ADB.Mlmap.update(a, ["spanning", "v21", "c2"], true)
+  a = ADB.Mlmap.update(a, ["spanning", "o111", "v11"], true)
+  a = ADB.Mlmap.update(a, ["spanning", "o112", "v11"], true)
+  a = ADB.Mlmap.update(a, ["spanning", "o121", "v12"], true)
+  a = ADB.Mlmap.update(a, ["spanning", "o122", "v12"], true)
+  a = ADB.Mlmap.update(a, ["spanning", "o123", "v12"], true)
+  a = ADB.Mlmap.update(a, ["spanning", "o211", "v21"], true)
+  a = ADB.Mlmap.update(a, ["spanning", "o212", "v21"], true)
+  a = ADB.Mlmap.update(a, ["spanning", "o213", "v21"], true)
+
+  orig = a
+
+  da = %{}
+  # da = ADB.Mlmap.update(da, ["spanning", "v12", "c2"], :undefined)
+  # a = ADB.Mlmap.supdate(a, ["spanning", "v12", "c2"], :undefined)
+
+  da = ADB.Mlmap.update(da, ["spanning", "c2"], :undefined)
+  {a,x} = ADB.Mlmap.supdate(a, ["spanning", "c2"], :undefined)
+  da = ADB.Mlmap.update(da, ["spanning", "v21"], :undefined)
+  {a,x} = ADB.Mlmap.supdate(a, ["spanning", "v21"], :undefined)
+  da = ADB.Mlmap.update(da, ["spanning", "o211"], :undefined)
+  {a,x} = ADB.Mlmap.supdate(a, ["spanning", "o211"], :undefined)
+  da = ADB.Mlmap.update(da, ["spanning", "o212"], :undefined)
+  {a,x} = ADB.Mlmap.supdate(a, ["spanning", "o212"], :undefined)
+  da = ADB.Mlmap.update(da, ["spanning", "o213"], :undefined)
+  {a,x} = ADB.Mlmap.supdate(a, ["spanning", "o213"], :undefined)
+  da = ADB.Mlmap.update(da, ["spanning", "c2", "folder"], :undefined)
+  {a,x} = ADB.Mlmap.supdate(a, ["spanning", "c2", "folder"], :undefined)
+  ADB.Mlmap.filter(da, orig)
+
+
   @vsn `"#{@vsn}"`
   """
 
+  require Util
+
+  @typedoc """
+  Ez elvileg nem tartalmazza a metanyelvi `:undefined`-et.
+  """
   @type t :: Map.t()
+
+  @typedoc """
+  Itt elvileg komolyan vesszuk a metanyelvi `:undefined`-et.
+  """
+  @type t_diff :: t | :undefined
 
   # require Logger
 
@@ -21,7 +69,9 @@ defmodule Mlmap do
   ######           #######     ##    #### ######## ####    ##       ##             ######
 
   @doc """
-  Ha `expr` (egy valtozo) egy map (de nem struct), akkor `clause`, kulonben `other`.
+  - Ha `expr` (egy valtozo) egy map (de nem struct), akkor `clause`.
+  - Kulonben `other`.
+
   ```elixir
   x = casemap v, do: Map.get(v, key, nil), else: nil
   ```
@@ -37,8 +87,11 @@ defmodule Mlmap do
   end
 
   @doc """
-  Ha `expr` egy map (de nem struct), akkor `clause`, kulonben `other`, es `xvar` fogja tartalmazni `expr` erteket.
+  - Ha `expr` egy map (de nem struct), akkor `clause`, es `xvar` fogja tartalmazni `expr` erteket.
+  - Kulonben `other`.
+
   Ez akkor hasznos, ha `expr` egy tenyleges kifejezes.
+
   ```elixir
   x = casemap Map.get(valami, kulcs, nil), mp, do: Map.get(mp, key, nil), else: nil
   ```
@@ -54,8 +107,11 @@ defmodule Mlmap do
   end
 
   @doc """
-  Ha `expr` (egy valtozo) egy map (de nem struct), akkor `clause`, kulonben `other`.
+  - Ha `expr` (egy valtozo) egy map (de nem struct), akkor `clause`.
+  - Kulonben `other`.
+
   Olvashatosagot javit, ha `other` valami trivialis es rovid.
+
   ```elixir
   x = casemapx v, nil, do: Map.get(v, key, nil)
   ```
@@ -71,9 +127,12 @@ defmodule Mlmap do
   end
 
   @doc """
-  Ha `expr` egy map (de nem struct), akkor `clause`, kulonben `other`, es `xvar` fogja tartalmazni `expr` erteket.
+  - Ha `expr` egy map (de nem struct), akkor `clause`, es `xvar` fogja tartalmazni `expr` erteket.
+  - Kulonben `other`.
+
   Ez akkor hasznos, ha `expr` egy tenyleges kifejezes.
   Olvashatosagot javit, ha `other` valami trivialis es rovid.
+
   ```elixir
   x = casemapx Map.get(valami, kulcs, nil), nil, mp, do: Map.get(mp, key, nil)
   ```
@@ -83,6 +142,49 @@ defmodule Mlmap do
       case unquote(expr) do
         %{__struct__: _} -> unquote(other)
         unquote(xvar) when is_map(unquote(xvar)) -> unquote(clause)
+        _ -> unquote(other)
+      end
+    end
+  end
+
+  @doc """
+  - Ha `expr` (egy valtozo) egy map (de nem struct), akkor `clause`.
+  - Ha `:undefined`, akkor `undefblock`.
+  - Kulonben `other`.
+
+  ```elixir
+
+  x = casemap v, do: Map.get(v, key, nil), else: nil, catch: :deleted
+  ```
+  """
+  defmacro ucasemap(expr, do: clause, else: other, catch: undefblock) do
+    quote do
+      case unquote(expr) do
+        %{__struct__: _} -> unquote(other)
+        y when is_map(y) -> unquote(clause)
+        :undefined -> unquote(undefblock)
+        _ -> unquote(other)
+      end
+    end
+  end
+
+  @doc """
+  - Ha `expr` egy map (de nem struct), akkor `clause`, es `xvar` fogja tartalmazni `expr` erteket.
+  - Ha `:undefined`, akkor `undefblock`.
+  - Kulonben `other`.
+
+  Ez akkor hasznos, ha `expr` egy tenyleges kifejezes.
+
+  ```elixir
+  x = casemap Map.get(valami, kulcs, nil), mp, do: Map.get(mp, key, nil), else: nil, catch: :deleted
+  ```
+  """
+  defmacro ucasemap(expr, xvar, do: clause, else: other, catch: undefblock) do
+    quote do
+      case unquote(expr) do
+        %{__struct__: _} -> unquote(other)
+        unquote(xvar) when is_map(unquote(xvar)) -> unquote(clause)
+        :undefined -> unquote(undefblock)
         _ -> unquote(other)
       end
     end
@@ -107,7 +209,9 @@ defmodule Mlmap do
   def merge(a, b), do: Map.merge(a, b, &resolver/3)
 
   # @compile {:inline, get: 2, get: 3}
-  @spec get(t | :undefined, [any], any) :: any
+  # @spec get(:undefined, [any], a) :: a when a: var
+  @spec get(t, [], any) :: t
+  @spec get(t, nonempty_list(any), any) :: any
   def get(s, lst, defa \\ :undefined) do
     case s do
       :undefined ->
@@ -120,15 +224,32 @@ defmodule Mlmap do
 
           [key | rest] ->
             case Map.fetch(s, key) do
-              {:ok, val} -> get(val, rest, defa)
+              {:ok, val} -> get_aux(val, rest, defa)
               :error -> defa
             end
         end
     end
   end
 
+  # @compile {:inline, get_aux: 2, get_aux: 3}
+  @spec get_aux(a, [], any) :: a when a: var
+  @spec get_aux(t, nonempty_list(any), any) :: any
+  def get_aux(s, lst, defa \\ :undefined) do
+    case lst do
+      [] ->
+        s
+
+      [key | rest] ->
+        case Map.fetch(s, key) do
+          {:ok, val} -> get_aux(val, rest, defa)
+          :error -> defa
+        end
+    end
+  end
+
   # @compile {:inline, getp: 2, getp: 3}
-  @spec getp(t | :undefined, any, any) :: any
+  @spec getp(:undefined, any, a) :: a when a: var
+  @spec getp(t, any, any) :: any
   def getp(s, key, defa \\ :undefined) do
     case s do
       :undefined ->
@@ -172,15 +293,19 @@ defmodule Mlmap do
     end
   end
 
-  ######          ##     ## ########  ########     ###    ######## ########          ######
-  ##              ##     ## ##     ## ##     ##   ## ##      ##    ##                    ##
-  ##              ##     ## ##     ## ##     ##  ##   ##     ##    ##                    ##
-  ##              ##     ## ########  ##     ## ##     ##    ##    ######                ##
-  ##              ##     ## ##        ##     ## #########    ##    ##                    ##
-  ##              ##     ## ##        ##     ## ##     ##    ##    ##                    ##
-  ######           #######  ##        ########  ##     ##    ##    ########          ######
+  ######          ##     ## ########  ########          ##    ##    ###    #### ##     ##          ######
+  ##              ##     ## ##     ## ##     ##         ###   ##   ## ##    ##  ##     ##              ##
+  ##              ##     ## ##     ## ##     ##         ####  ##  ##   ##   ##  ##     ##              ##
+  ##              ##     ## ########  ##     ##         ## ## ## ##     ##  ##  ##     ##              ##
+  ##              ##     ## ##        ##     ##         ##  #### #########  ##   ##   ##               ##
+  ##              ##     ## ##        ##     ##         ##   ### ##     ##  ##    ## ##                ##
+  ######           #######  ##        ########  ####### ##    ## ##     ## ####    ###             ######
 
-  @spec update(t, [any], any) :: t
+  @doc """
+  Itt nincs metanyelvi ertelme az `:undefined`-nek, az is csak egy ertek.
+  """
+  @spec update(t, nonempty_list, any) :: t
+  @spec update(any, [], a) :: a when a: var
   def update(s, lst, val) do
     case lst do
       [] ->
@@ -196,13 +321,12 @@ defmodule Mlmap do
 
           Map.put(s, key, upd)
         else
-          upd = make_from_lst(rest, val)
-          %{key => upd}
+          %{key => make_from_lst(rest, val)}
         end
     end
   end
 
-  @spec merdate(t, [any], any) :: t
+  @spec merdate(t, [any], t) :: t
   def merdate(s, lst, val) do
     case lst do
       [] ->
@@ -218,8 +342,7 @@ defmodule Mlmap do
 
           Map.put(s, key, upd)
         else
-          upd = make_from_lst(rest, val)
-          %{key => upd}
+          %{key => make_from_lst(rest, val)}
         end
     end
   end
@@ -233,91 +356,262 @@ defmodule Mlmap do
     end
   end
 
-  ######          ########  ######## ##               ##     ## ########  ########     ###    ######## ########          ######
-  ##              ##     ## ##       ##               ##     ## ##     ## ##     ##   ## ##      ##    ##                    ##
-  ##              ##     ## ##       ##               ##     ## ##     ## ##     ##  ##   ##     ##    ##                    ##
-  ##              ##     ## ######   ##       ####### ##     ## ########  ##     ## ##     ##    ##    ######                ##
-  ##              ##     ## ##       ##               ##     ## ##        ##     ## #########    ##    ##                    ##
-  ##              ##     ## ##       ##               ##     ## ##        ##     ## ##     ##    ##    ##                    ##
-  ######          ########  ######## ########          #######  ##        ########  ##     ##    ##    ########          ######
+  ######          ##     ## ########  ########          ########  #### ######## ########          ######
+  ##              ##     ## ##     ## ##     ##         ##     ##  ##  ##       ##                    ##
+  ##              ##     ## ##     ## ##     ##         ##     ##  ##  ##       ##                    ##
+  ##              ##     ## ########  ##     ##         ##     ##  ##  ######   ######                ##
+  ##              ##     ## ##        ##     ##         ##     ##  ##  ##       ##                    ##
+  ##              ##     ## ##        ##     ##         ##     ##  ##  ##       ##                    ##
+  ######           #######  ##        ########  ####### ########  #### ##       ##                ######
 
-  @spec supdate(t, [any], any) :: t
+  # defmacro same_check(key, expr) do
+  #   quote do
+  #     case unquote(expr) do
+  #       {:ok, upd} -> {:ok, %{unquote(key) => upd}}
+  #       :same -> :same
+  #       :undefined -> :undefined
+  #     end
+  #   end
+  # end
+  #
+  # defmacro eq_check(orig, val) do
+  #   quote do
+  #     if unquote(orig) == unquote(val), do: :undefined, else: {:ok, unquote(val)}
+  #   end
+  # end
+  #
+  # defmacro undefined_check(var, expr) do
+  #   quote do
+  #     Util.wife(:same, unquote(var) != :undefined, do: {:ok, unquote(expr)})
+  #   end
+  # end
+  #
+  # @doc """
+  # Itt nincs metanyelvi ertelme az `:undefined`-nek, az is csak egy ertek.
+  # """
+  # @spec dupdate_aux(t, t_diff, nonempty_list, any) :: :same | {:ok, t}
+  # @spec dupdate_aux(a, a, [], a) :: :same | {:ok, a} when a: var
+  # @spec dupdate_aux(any, any, [], a) :: {:ok, a} when a: var
+  # def dupdate_aux(orig, diff, lst, val) do
+  #   case lst do
+  #     [] ->
+  #       eq_check(orig, val)
+  #
+  #     [key | rest] ->
+  #       casemap diff do
+  #         case Map.fetch(diff, key) do
+  #           {:ok, map} ->
+  #             same_check(key, dupdate_aux(map, rest, val))
+  #
+  #           :error ->
+  #             casemap orig do
+  #               case Map.fetch(orig, key) do
+  #                 {:ok, map} -> same_check(key, descend(orig, rest, val))
+  #                 :error -> undefined_check(val, Map.put(diff, key, make_from_lst(rest, val)))
+  #               end
+  #             else
+  #               undefined_check(val, Map.put(diff, key, make_from_lst(rest, val)))
+  #             end
+  #         end
+  #       else
+  #         upd = make_from_lst(rest, val)
+  #         %{key => make_from_lst(rest, val)}
+  #       end
+  #   end
+  # end
+  #
+  # def descend(orig, lst, val) do
+  #   case lst do
+  #     [] ->
+  #       eq_check(orig, val)
+  #
+  #     [key | rest] ->
+  #       casemap orig do
+  #         case Map.fetch(orig, key) do
+  #           {:ok, map} -> same_check(key, descend(map, rest, val))
+  #           :error -> undefined_check(val, %{key => make_from_lst(rest, val)})
+  #         end
+  #       else
+  #         undefined_check(val, %{key => make_from_lst(rest, val)})
+  #       end
+  #   end
+  # end
+  #
+  # @spec dmerdate(t, [any], any) :: t
+  # def dmerdate(s, lst, val) do
+  #   case lst do
+  #     [] ->
+  #       merge(s, val)
+  #
+  #     [key | rest] ->
+  #       casemap s do
+  #         upd =
+  #           case Map.fetch(s, key) do
+  #             {:ok, map} -> merdate(map, rest, val)
+  #             :error -> make_from_lst(rest, val)
+  #           end
+  #
+  #         Map.put(s, key, upd)
+  #       else
+  #         upd = make_from_lst(rest, val)
+  #         %{key => upd}
+  #       end
+  #   end
+  # end
+  #
+  # @spec dmake_from_lst([], a) :: a when a: var
+  # @spec dmake_from_lst(nonempty_list(any()), any) :: t
+  # def dmake_from_lst(lst, val) do
+  #   case lst do
+  #     [] -> val
+  #     [k | rest] -> %{k => make_from_lst(rest, val)}
+  #   end
+  # end
+  #
+  ######          ##     ## ########  ########          ##     ## ######## ########    ###             ######
+  ##              ##     ## ##     ## ##     ##         ###   ### ##          ##      ## ##                ##
+  ##              ##     ## ##     ## ##     ##         #### #### ##          ##     ##   ##               ##
+  ##              ##     ## ########  ##     ##         ## ### ## ######      ##    ##     ##              ##
+  ##              ##     ## ##        ##     ##         ##     ## ##          ##    #########              ##
+  ##              ##     ## ##        ##     ##         ##     ## ##          ##    ##     ##              ##
+  ######           #######  ##        ########  ####### ##     ## ########    ##    ##     ##          ######
+
+  @doc """
+  Itt normal adatszerkezetekre alkalmazunk diff-eket, azaz a diff-ben metanyelvi ertelme van az `:undefined`-nek.
+  """
+  @spec supdate(t, [any], any) :: {t, [any]} | :bump | :undefined
   def supdate(s, lst, val) do
-    case supdate_aux(s, lst, val) do
-      :undefined -> %{}
-      res -> res
-    end
-  end
+    case val do
+      :undefined ->
+        supdate_aux_u(s, lst)
 
-  @spec supdate_aux(t, [any], any) :: t
-  def supdate_aux(s, lst, val) do
-    case lst do
-      [] ->
-        val
-
-      [key | rest] ->
-        casemap s do
-          case Map.fetch(s, key) do
-            {:ok, map} -> supdate_aux(map, rest, val)
-            :error -> smake_from_lst(rest, val)
-          end
-          |> evaluate_upd(s, key)
-        else
-          smake_from_lst(rest, val) |> evaluate_upd(%{}, key)
+      _ ->
+        case supdate_aux(s, lst, val) do
+          :bump -> :bump
+          upd -> {upd, lst}
         end
     end
   end
 
-  @spec smerdate(t, [any], any) :: t
-  def smerdate(s, lst, val) do
-    case smerdate_aux(s, lst, val) do
-      :undefined -> %{}
-      res -> res
+  @spec supdate_aux(t, nonempty_list(any), any) :: t | :bump
+  @spec supdate_aux(any, [], a) :: :bump | a when a: var
+  def supdate_aux(s, lst, val) do
+    case lst do
+      [] ->
+        if val == s, do: :bump, else: val
+
+      [key | rest] ->
+        casemap s do
+          case Map.fetch(s, key) do
+            {:ok, map} ->
+              case supdate_aux(map, rest, val) do
+                :bump ->
+                  :bump
+
+                upd ->
+                  Map.put(s, key, upd)
+              end
+
+            :error ->
+              Map.put(s, key, smake_from_lst(rest, val))
+          end
+        else
+          %{key => smake_from_lst(rest, val)}
+        end
     end
   end
 
-  @spec smerdate_aux(t, [any], any) :: t | :undefined
+  @spec supdate_aux_u(t, nonempty_list(any)) :: {t, [any]} | :undefined | :bump
+  @spec supdate_aux_u(any, []) :: :undefined
+  def supdate_aux_u(s, lst) do
+    case lst do
+      [] ->
+        # Itt a torlese a levelnek.
+        :undefined
+
+      [key | rest] ->
+        casemap s do
+          case Map.fetch(s, key) do
+            {:ok, map} ->
+              case supdate_aux_u(map, rest) do
+                :undefined ->
+                  s = Map.delete(s, key)
+                  if s == %{}, do: :undefined, else: {s, [key]}
+
+                :bump ->
+                  :bump
+
+                {upd, rslst} ->
+                  {Map.put(s, key, upd), [key | rslst]}
+              end
+
+            # Nincs is benne, nem kell torolni
+            :error ->
+              :bump
+          end
+        else
+          # Itt nem kell csinalni semmit, nincs is benne.
+          :bump
+        end
+    end
+  end
+
+  # @spec smerdate(t, [any], t_diff) :: {t, [any]}
+  # def smerdate(s, lst, val) do
+  #   case smerdate_aux(s, lst, val) do
+  #     :undefined -> {%{}, []}
+  #     res -> res
+  #   end
+  # end
+
+  @spec smerdate_aux(t, [any], t_diff) :: {t, [any]} | :undefined | :bump
   def smerdate_aux(s, lst, val) do
     case lst do
       [] ->
         res = merge(s, val) |> normalize()
-        if res == %{} and (val != %{} or s != %{}), do: :undefined, else: res
+
+        if res == %{} do
+          :undefined
+        else
+          if res == s, do: :bump, else: {res, []}
+        end
 
       [key | rest] ->
         casemap s do
-          case Map.fetch(s, key) do
-            {:ok, map} -> smerdate_aux(map, rest, val)
-            :error -> smake_from_lst(rest, val)
+          upd =
+            case Map.fetch(s, key) do
+              {:ok, map} -> smerdate_aux(map, rest, val)
+              :error -> n_smake_from_lst(rest, val)
+            end
+
+          case upd do
+            :undefined ->
+              s = Map.delete(s, key)
+              if s == %{}, do: :undefined, else: {s, lst}
+
+            :bump ->
+              :bump
+
+            {mp, rslst} ->
+              {Map.put(s, key, mp), [key | rslst]}
           end
-          |> evaluate_upd(s, key)
         else
-          smake_from_lst(rest, val) |> evaluate_upd(%{}, key)
+          n_smake_from_lst(rest, val)
         end
     end
   end
 
-  @spec evaluate_upd(any, t, any) :: t | :undefined
-  def evaluate_upd(upd, s, key) do
-    case upd do
-      :undefined ->
-        s2 = Map.delete(s, key)
-        if s != %{} and s2 == %{}, do: :undefined, else: s2
-
-      _ ->
-        Map.put(s, key, upd)
-    end
+  @spec n_smake_from_lst([any], t_diff) :: {t, [any]} | :undefined
+  def n_smake_from_lst(lst, val) do
+    nval = normalize(val)
+    if nval == %{}, do: :undefined, else: {smake_from_lst(lst, nval), lst}
   end
 
-  @spec smake_from_lst([], a) :: a when a: var
-  @spec smake_from_lst(nonempty_list(any()), any) :: t | :undefined
+  @spec smake_from_lst([any], t) :: t
   def smake_from_lst(lst, val) do
     case lst do
-      [] ->
-        val
-
-      [k | rest] ->
-        upd = smake_from_lst(rest, val)
-        if upd == :undefined, do: :undefined, else: %{k => upd}
+      [] -> val
+      [k | rest] -> %{k => smake_from_lst(rest, val)}
     end
   end
 
@@ -332,27 +626,21 @@ defmodule Mlmap do
   @doc """
   Egy diff alkalmazasa utani allapot, kiszuri a felesleges dolgokat.
   """
-  @spec normalize(t) :: t
+  @spec normalize(t_diff) :: t
   def normalize(s) do
     s
     |> Enum.map(fn {k, v} ->
-      case v do
-        %{__struct__: _} ->
-          {k, v}
-
-        x when is_map(x) ->
-          if Map.size(v) == 0 do
-            {k, %{}}
-          else
-            v = normalize(v)
-            if v == %{}, do: :undefined, else: {k, v}
-          end
-
-        :undefined ->
-          :undefined
-
-        _ ->
-          {k, v}
+      ucasemap v do
+        if Map.size(v) == 0 do
+          {k, %{}}
+        else
+          v = normalize(v)
+          if v == %{}, do: :undefined, else: {k, v}
+        end
+      else
+        {k, v}
+      catch
+        :undefined
       end
     end)
     |> Enum.filter(fn x -> x != :undefined end)
@@ -362,49 +650,39 @@ defmodule Mlmap do
   @doc """
   Egy diff-et optimalizal.
   """
-  @spec filter(t, t, any) :: t
+  @spec filter(t_diff, t, any) :: t
   def filter(s, s2, meta \\ :undefined) do
     s
     |> Enum.map(fn {k, v} ->
       case Map.fetch(s2, k) do
         {:ok, v2} ->
-          case v do
-            %{__struct__: _} ->
-              if v == v2, do: :undefined, else: {k, v}
-
-            x when is_map(x) ->
-              case v2 do
-                %{__struct__: _} ->
-                  {k, v}
-
-                y when is_map(y) ->
-                  if Map.size(v) == 0 do
-                    # Helybenhagyas
-                    :undefined
-                  else
-                    v = filter(v, v2, meta)
-                    if v == %{}, do: :undefined, else: {k, v}
-                  end
-
-                _ ->
-                  {k, v}
+          ucasemap v do
+            casemap v2 do
+              if Map.size(v) == 0 do
+                # Helybenhagyas
+                :bump
+              else
+                v = filter(v, v2, meta)
+                if v == %{}, do: :bump, else: {k, v}
               end
-
-            :undefined ->
-              if meta == v2, do: :undefined, else: {k, meta}
-
-            _ ->
-              if v == v2, do: :undefined, else: {k, v}
+            else
+              {k, v}
+            end
+          else
+            if v == v2, do: :bump, else: {k, v}
+          catch
+            if meta == v2, do: :bump, else: {k, meta}
+            # {k, meta}
           end
 
         :error ->
           case v do
-            :undefined -> :undefined
+            :undefined -> :bump
             _ -> {k, v}
           end
       end
     end)
-    |> Enum.filter(fn x -> x != :undefined end)
+    |> Enum.filter(fn x -> x != :bump end)
     |> Map.new()
   end
 
@@ -514,20 +792,26 @@ defmodule Mlmap do
         mapp(orig, fn k, v -> fnc.(k, :deleted, v, :undefined, :undefined) end)
 
       :changed ->
-        mapp(diff, fn k, v ->
-          # Itt `orig` biztosan `Map`!
-          case v do
-            :undefined ->
-              # Itt bizotsan benne is van `orig`-ban!
-              fnc.(k, :deleted, Map.get(orig, k), :undefined, :undefined)
+        case diff do
+          :undefined ->
+            mapp(orig, fn k, v -> fnc.(k, :deleted, v, :undefined, :undefined) end)
 
-            _ ->
-              case Map.fetch(orig, k) do
-                :error -> fnc.(k, :inserted, :undefined, v, v)
-                {:ok, v2x} -> fnc.(k, :changed, v2x, v, Map.get(curr, k))
+          _ ->
+            mapp(diff, fn k, v ->
+              # Itt `orig` biztosan `Map`!
+              case v do
+                :undefined ->
+                  # Itt bizotsan benne is van `orig`-ban!
+                  fnc.(k, :deleted, Map.get(orig, k), :undefined, :undefined)
+
+                _ ->
+                  case Map.fetch(orig, k) do
+                    :error -> fnc.(k, :inserted, :undefined, v, v)
+                    {:ok, v2x} -> fnc.(k, :changed, v2x, v, Map.get(curr, k))
+                  end
               end
-          end
-        end)
+            end)
+        end
 
       :inserted ->
         mapp(curr, fn k, v -> fnc.(k, :inserted, :undefined, v, v) end)
@@ -542,20 +826,26 @@ defmodule Mlmap do
         reducep(orig, acc, fn k, v, acc -> fnc.(k, :deleted, v, :undefined, :undefined, acc) end)
 
       :changed ->
-        reducep(diff, acc, fn k, v, acc ->
-          # Itt `orig` biztosan `Map`!
-          case v do
-            :undefined ->
-              # Itt bizotsan benne is van `orig`-ban!
-              fnc.(k, :deleted, Map.get(orig, k), :undefined, :undefined, acc)
+        case diff do
+          :undefined ->
+            reducep(orig, acc, fn k, v, acc -> fnc.(k, :deleted, v, :undefined, :undefined, acc) end)
 
-            _ ->
-              case Map.fetch(orig, k) do
-                :error -> fnc.(k, :inserted, :undefined, v, v, acc)
-                {:ok, v2x} -> fnc.(k, :changed, v2x, v, Map.get(curr, k), acc)
+          _ ->
+            reducep(diff, acc, fn k, v, acc ->
+              # Itt `orig` biztosan `Map`!
+              case v do
+                :undefined ->
+                  # Itt bizotsan benne is van `orig`-ban!
+                  fnc.(k, :deleted, Map.get(orig, k), :undefined, :undefined, acc)
+
+                _ ->
+                  case Map.fetch(orig, k) do
+                    :error -> fnc.(k, :inserted, :undefined, v, v, acc)
+                    {:ok, v2x} -> fnc.(k, :changed, v2x, v, Map.get(curr, k), acc)
+                  end
               end
-          end
-        end)
+            end)
+        end
 
       :inserted ->
         reducep(curr, acc, fn k, v, acc -> fnc.(k, :inserted, :undefined, v, v, acc) end)
@@ -570,20 +860,26 @@ defmodule Mlmap do
         reduce_whilep(orig, acc, fn k, v, acc -> fnc.(k, :deleted, v, :undefined, :undefined, acc) end)
 
       :changed ->
-        reduce_whilep(diff, acc, fn k, v, acc ->
-          # Itt `orig` biztosan `Map`!
-          case v do
-            :undefined ->
-              # Itt bizotsan benne is van `orig`-ban!
-              fnc.(k, :deleted, Map.get(orig, k), :undefined, :undefined, acc)
+        case diff do
+          :undefined ->
+            reduce_whilep(orig, acc, fn k, v, acc -> fnc.(k, :deleted, v, :undefined, :undefined, acc) end)
 
-            _ ->
-              case Map.fetch(orig, k) do
-                :error -> fnc.(k, :inserted, :undefined, v, v, acc)
-                {:ok, v2x} -> fnc.(k, :changed, v2x, v, Map.get(curr, k), acc)
+          _ ->
+            reduce_whilep(diff, acc, fn k, v, acc ->
+              # Itt `orig` biztosan `Map`!
+              case v do
+                :undefined ->
+                  # Itt bizotsan benne is van `orig`-ban!
+                  fnc.(k, :deleted, Map.get(orig, k), :undefined, :undefined, acc)
+
+                _ ->
+                  case Map.fetch(orig, k) do
+                    :error -> fnc.(k, :inserted, :undefined, v, v, acc)
+                    {:ok, v2x} -> fnc.(k, :changed, v2x, v, Map.get(curr, k), acc)
+                  end
               end
-          end
-        end)
+            end)
+        end
 
       :inserted ->
         reduce_whilep(curr, acc, fn k, v, acc -> fnc.(k, :inserted, :undefined, v, v, acc) end)
@@ -604,27 +900,35 @@ defmodule Mlmap do
         map(diff, lst, fn k, v -> fnc.(k, :inserted, :undefined, v, v) end)
 
       _ ->
-        curr = get(curr, lst)
+        diff = get(diff, lst, %{})
 
-        map(diff, lst, fn k, v ->
-          case v do
-            # Itt `orig` biztosan `Map`!
-            :undefined ->
-              # Itt bizotsan benne is van `orig`-ban!
-              fnc.(k, :deleted, Map.get(orig, k), :undefined, :undefined)
+        case diff do
+          :undefined ->
+            mapp(orig, fn k, v -> fnc.(k, :deleted, v, :undefined, :undefined) end)
 
-            _ ->
-              case Map.fetch(orig, k) do
-                :error ->
-                  fnc.(k, :inserted, :undefined, v, v)
+          _ ->
+            curr = get(curr, lst)
 
-                {:ok, v2x} ->
-                  # Itt `Map.get(curr, k) == v` NEM BIZTOS, hogy igaz,
-                  # mert pl. ha az objektum egy struktura, akkor `v` siman lehet reszleges (kulonbseg)
-                  fnc.(k, :changed, v2x, v, Map.get(curr, k))
+            mapp(diff, fn k, v ->
+              case v do
+                # Itt `orig` biztosan `Map`!
+                :undefined ->
+                  # Itt bizotsan benne is van `orig`-ban!
+                  fnc.(k, :deleted, Map.get(orig, k), :undefined, :undefined)
+
+                _ ->
+                  case Map.fetch(orig, k) do
+                    :error ->
+                      fnc.(k, :inserted, :undefined, v, v)
+
+                    {:ok, v2x} ->
+                      # Itt `Map.get(curr, k) == v` NEM BIZTOS, hogy igaz,
+                      # mert pl. ha az objektum egy struktura, akkor `v` siman lehet reszleges (kulonbseg)
+                      fnc.(k, :changed, v2x, v, Map.get(curr, k))
+                  end
               end
-          end
-        end)
+            end)
+        end
     end
   end
 
@@ -642,27 +946,35 @@ defmodule Mlmap do
         reduce(diff, lst, acc, fn k, v, acc -> fnc.(k, :inserted, :undefined, v, v, acc) end)
 
       _ ->
-        curr = get(curr, lst)
+        diff = get(diff, lst, %{})
 
-        reduce(diff, lst, acc, fn k, v, acc ->
-          case v do
-            # Itt `orig` biztosan `Map`!
-            :undefined ->
-              # Itt bizotsan benne is van `orig`-ban!
-              fnc.(k, :deleted, Map.get(orig, k), :undefined, :undefined, acc)
+        case diff do
+          :undefined ->
+            reducep(orig, acc, fn k, v, acc -> fnc.(k, :deleted, v, :undefined, :undefined, acc) end)
 
-            _ ->
-              case Map.fetch(orig, k) do
-                :error ->
-                  fnc.(k, :inserted, :undefined, v, v, acc)
+          _ ->
+            curr = get(curr, lst)
 
-                {:ok, v2x} ->
-                  # Itt `Map.get(curr, k) == v` NEM BIZTOS, hogy igaz,
-                  # mert pl. ha az objektum egy struktura, akkor `v` siman lehet reszleges (kulonbseg)
-                  fnc.(k, :changed, v2x, v, Map.get(curr, k), acc)
+            reducep(diff, acc, fn k, v, acc ->
+              case v do
+                # Itt `orig` biztosan `Map`!
+                :undefined ->
+                  # Itt bizotsan benne is van `orig`-ban!
+                  fnc.(k, :deleted, Map.get(orig, k), :undefined, :undefined, acc)
+
+                _ ->
+                  case Map.fetch(orig, k) do
+                    :error ->
+                      fnc.(k, :inserted, :undefined, v, v, acc)
+
+                    {:ok, v2x} ->
+                      # Itt `Map.get(curr, k) == v` NEM BIZTOS, hogy igaz,
+                      # mert pl. ha az objektum egy struktura, akkor `v` siman lehet reszleges (kulonbseg)
+                      fnc.(k, :changed, v2x, v, Map.get(curr, k), acc)
+                  end
               end
-          end
-        end)
+            end)
+        end
     end
   end
 
@@ -680,27 +992,35 @@ defmodule Mlmap do
         reduce_while(diff, lst, acc, fn k, v, acc -> fnc.(k, :inserted, :undefined, v, v, acc) end)
 
       _ ->
-        curr = get(curr, lst)
+        diff = get(diff, lst, %{})
 
-        reduce_while(diff, lst, acc, fn k, v, acc ->
-          case v do
-            # Itt `orig` biztosan `Map`!
-            :undefined ->
-              # Itt bizotsan benne is van `orig`-ban!
-              fnc.(k, :deleted, Map.get(orig, k), :undefined, :undefined, acc)
+        case diff do
+          :undefined ->
+            reduce_whilep(orig, acc, fn k, v, acc -> fnc.(k, :deleted, v, :undefined, :undefined, acc) end)
 
-            _ ->
-              case Map.fetch(orig, k) do
-                :error ->
-                  fnc.(k, :inserted, :undefined, v, v, acc)
+          _ ->
+            curr = get(curr, lst)
 
-                {:ok, v2x} ->
-                  # Itt `Map.get(curr, k) == v` NEM BIZTOS, hogy igaz,
-                  # mert pl. ha az objektum egy struktura, akkor `v` siman lehet reszleges (kulonbseg)
-                  fnc.(k, :changed, v2x, v, Map.get(curr, k), acc)
+            reduce_whilep(diff, acc, fn k, v, acc ->
+              case v do
+                # Itt `orig` biztosan `Map`!
+                :undefined ->
+                  # Itt bizotsan benne is van `orig`-ban!
+                  fnc.(k, :deleted, Map.get(orig, k), :undefined, :undefined, acc)
+
+                _ ->
+                  case Map.fetch(orig, k) do
+                    :error ->
+                      fnc.(k, :inserted, :undefined, v, v, acc)
+
+                    {:ok, v2x} ->
+                      # Itt `Map.get(curr, k) == v` NEM BIZTOS, hogy igaz,
+                      # mert pl. ha az objektum egy struktura, akkor `v` siman lehet reszleges (kulonbseg)
+                      fnc.(k, :changed, v2x, v, Map.get(curr, k), acc)
+                  end
               end
-          end
-        end)
+            end)
+        end
     end
   end
 
@@ -815,7 +1135,7 @@ defmodule Mlmap do
   @spec track2(t | :undefined, t | :undefined, t | :undefined, [any], mapfun2) :: [any]
   def track2(orig, diff, curr, lst, fnc) do
     track(orig, diff, curr, lst, fn k, event, ori, v, cur ->
-      trackp(event, ori, v, cur, &{fnc.(k, &1, &2, &3, &4, &5)})
+      trackp(event, ori, v, cur, &fnc.(k, &1, &2, &3, &4, &5))
     end)
   end
 
@@ -823,7 +1143,7 @@ defmodule Mlmap do
   @spec track_reduce2(t | :undefined, t | :undefined, t | :undefined, [any], a, redfun2(a)) :: a when a: var
   def track_reduce2(orig, diff, curr, lst, acc, fnc) do
     track_reduce(orig, diff, curr, lst, acc, fn k, event, ori, v, cur, acc ->
-      track_reducep(event, ori, v, cur, acc, &{fnc.(k, &1, &2, &3, &4, &5, &6)})
+      track_reducep(event, ori, v, cur, acc, &fnc.(k, &1, &2, &3, &4, &5, &6))
     end)
   end
 
@@ -831,7 +1151,7 @@ defmodule Mlmap do
   @spec track_reduce_while2(t | :undefined, t | :undefined, t | :undefined, [any], a, red_while_fun2(a)) :: a when a: var
   def track_reduce_while2(orig, diff, curr, lst, acc, fnc) do
     track_reduce_while(orig, diff, curr, lst, acc, fn k, event, ori, v, cur, acc ->
-      track_reduce_whilep(event, ori, v, cur, acc, &{fnc.(k, &1, &2, &3, &4, &5, &6)})
+      track_reduce_whilep(event, ori, v, cur, acc, &fnc.(k, &1, &2, &3, &4, &5, &6))
     end)
   end
 
@@ -839,7 +1159,7 @@ defmodule Mlmap do
   @spec trackp2(nonunchanged, t | :undefined, t | :undefined, t | :undefined, mapfun2) :: [any]
   def trackp2(oevent, orig, diff, curr, fnc) do
     trackp(oevent, orig, diff, curr, fn k, event, ori, v, cur ->
-      trackp(event, ori, v, cur, &{fnc.(k, &1, &2, &3, &4, &5)})
+      trackp(event, ori, v, cur, &fnc.(k, &1, &2, &3, &4, &5))
     end)
   end
 
@@ -847,7 +1167,7 @@ defmodule Mlmap do
   @spec track_reducep2(nonunchanged, t | :undefined, t | :undefined, t | :undefined, a, redfun2(a)) :: a when a: var
   def track_reducep2(oevent, orig, diff, curr, acc, fnc) do
     track_reducep(oevent, orig, diff, curr, acc, fn k, event, ori, v, cur, acc ->
-      track_reducep(event, ori, v, cur, acc, &{fnc.(k, &1, &2, &3, &4, &5, &6)})
+      track_reducep(event, ori, v, cur, acc, &fnc.(k, &1, &2, &3, &4, &5, &6))
     end)
   end
 
@@ -855,7 +1175,7 @@ defmodule Mlmap do
   @spec track_reduce_whilep2(nonunchanged, t | :undefined, t | :undefined, t | :undefined, a, red_while_fun2(a)) :: a when a: var
   def track_reduce_whilep2(oevent, orig, diff, curr, acc, fnc) do
     track_reduce_whilep(oevent, orig, diff, curr, acc, fn k, event, ori, v, cur, acc ->
-      track_reduce_whilep(event, ori, v, cur, acc, &{fnc.(k, &1, &2, &3, &4, &5, &6)})
+      track_reduce_whilep(event, ori, v, cur, acc, &fnc.(k, &1, &2, &3, &4, &5, &6))
     end)
   end
 
@@ -923,7 +1243,7 @@ defmodule Mlmap do
   @spec track3(t | :undefined, t | :undefined, t | :undefined, [any], mapfun3) :: [any]
   def track3(orig, diff, curr, lst, fnc) do
     track(orig, diff, curr, lst, fn k, event, ori, v, cur ->
-      trackp2(event, ori, v, cur, &{fnc.(k, &1, &2, &3, &4, &5, &6)})
+      trackp2(event, ori, v, cur, &fnc.(k, &1, &2, &3, &4, &5, &6))
     end)
   end
 
@@ -931,7 +1251,7 @@ defmodule Mlmap do
   @spec track_reduce3(t | :undefined, t | :undefined, t | :undefined, [any], a, redfun3(a)) :: a when a: var
   def track_reduce3(orig, diff, curr, lst, acc, fnc) do
     track_reduce(orig, diff, curr, lst, acc, fn k, event, ori, v, cur, acc ->
-      track_reducep2(event, ori, v, cur, acc, &{fnc.(k, &1, &2, &3, &4, &5, &6, &7)})
+      track_reducep2(event, ori, v, cur, acc, &fnc.(k, &1, &2, &3, &4, &5, &6, &7))
     end)
   end
 
@@ -939,7 +1259,7 @@ defmodule Mlmap do
   @spec track_reduce_while3(t | :undefined, t | :undefined, t | :undefined, [any], a, red_while_fun3(a)) :: a when a: var
   def track_reduce_while3(orig, diff, curr, lst, acc, fnc) do
     track_reduce_while(orig, diff, curr, lst, acc, fn k, event, ori, v, cur, acc ->
-      track_reduce_whilep2(event, ori, v, cur, acc, &{fnc.(k, &1, &2, &3, &4, &5, &6, &7)})
+      track_reduce_whilep2(event, ori, v, cur, acc, &fnc.(k, &1, &2, &3, &4, &5, &6, &7))
     end)
   end
 
@@ -947,7 +1267,7 @@ defmodule Mlmap do
   @spec trackp3(nonunchanged, t | :undefined, t | :undefined, t | :undefined, mapfun3) :: [any]
   def trackp3(oevent, orig, diff, curr, fnc) do
     trackp(oevent, orig, diff, curr, fn k, event, ori, v, cur ->
-      trackp2(event, ori, v, cur, &{fnc.(k, &1, &2, &3, &4, &5, &6)})
+      trackp2(event, ori, v, cur, &fnc.(k, &1, &2, &3, &4, &5, &6))
     end)
   end
 
@@ -955,7 +1275,7 @@ defmodule Mlmap do
   @spec track_reducep3(nonunchanged, t | :undefined, t | :undefined, t | :undefined, a, redfun3(a)) :: a when a: var
   def track_reducep3(oevent, orig, diff, curr, acc, fnc) do
     track_reducep(oevent, orig, diff, curr, acc, fn k, event, ori, v, cur, acc ->
-      track_reducep2(event, ori, v, cur, acc, &{fnc.(k, &1, &2, &3, &4, &5, &6, &7)})
+      track_reducep2(event, ori, v, cur, acc, &fnc.(k, &1, &2, &3, &4, &5, &6, &7))
     end)
   end
 
@@ -963,7 +1283,7 @@ defmodule Mlmap do
   @spec track_reduce_whilep3(nonunchanged, t | :undefined, t | :undefined, t | :undefined, a, red_while_fun3(a)) :: a when a: var
   def track_reduce_whilep3(oevent, orig, diff, curr, acc, fnc) do
     track_reduce_whilep(oevent, orig, diff, curr, acc, fn k, event, ori, v, cur, acc ->
-      track_reduce_whilep2(event, ori, v, cur, acc, &{fnc.(k, &1, &2, &3, &4, &5, &6, &7)})
+      track_reduce_whilep2(event, ori, v, cur, acc, &fnc.(k, &1, &2, &3, &4, &5, &6, &7))
     end)
   end
 
@@ -1031,7 +1351,7 @@ defmodule Mlmap do
   @spec track4(t | :undefined, t | :undefined, t | :undefined, [any], mapfun4) :: [any]
   def track4(orig, diff, curr, lst, fnc) do
     track(orig, diff, curr, lst, fn k, event, ori, v, cur ->
-      trackp3(event, ori, v, cur, &{fnc.(k, &1, &2, &3, &4, &5, &6, &7)})
+      trackp3(event, ori, v, cur, &fnc.(k, &1, &2, &3, &4, &5, &6, &7))
     end)
   end
 
@@ -1039,7 +1359,7 @@ defmodule Mlmap do
   @spec track_reduce4(t | :undefined, t | :undefined, t | :undefined, [any], a, redfun4(a)) :: a when a: var
   def track_reduce4(orig, diff, curr, lst, acc, fnc) do
     track_reduce(orig, diff, curr, lst, acc, fn k, event, ori, v, cur, acc ->
-      track_reducep3(event, ori, v, cur, acc, &{fnc.(k, &1, &2, &3, &4, &5, &6, &7, &8)})
+      track_reducep3(event, ori, v, cur, acc, &fnc.(k, &1, &2, &3, &4, &5, &6, &7, &8))
     end)
   end
 
@@ -1047,7 +1367,7 @@ defmodule Mlmap do
   @spec track_reduce_while4(t | :undefined, t | :undefined, t | :undefined, [any], a, red_while_fun4(a)) :: a when a: var
   def track_reduce_while4(orig, diff, curr, lst, acc, fnc) do
     track_reduce_while(orig, diff, curr, lst, acc, fn k, event, ori, v, cur, acc ->
-      track_reduce_whilep3(event, ori, v, cur, acc, &{fnc.(k, &1, &2, &3, &4, &5, &6, &7, &8)})
+      track_reduce_whilep3(event, ori, v, cur, acc, &fnc.(k, &1, &2, &3, &4, &5, &6, &7, &8))
     end)
   end
 
@@ -1055,7 +1375,7 @@ defmodule Mlmap do
   @spec trackp4(nonunchanged, t | :undefined, t | :undefined, t | :undefined, mapfun4) :: [any]
   def trackp4(oevent, orig, diff, curr, fnc) do
     trackp(oevent, orig, diff, curr, fn k, event, ori, v, cur ->
-      trackp3(event, ori, v, cur, &{fnc.(k, &1, &2, &3, &4, &5, &6, &7)})
+      trackp3(event, ori, v, cur, &fnc.(k, &1, &2, &3, &4, &5, &6, &7))
     end)
   end
 
@@ -1063,7 +1383,7 @@ defmodule Mlmap do
   @spec track_reducep4(nonunchanged, t | :undefined, t | :undefined, t | :undefined, a, redfun4(a)) :: a when a: var
   def track_reducep4(oevent, orig, diff, curr, acc, fnc) do
     track_reducep(oevent, orig, diff, curr, acc, fn k, event, ori, v, cur, acc ->
-      track_reducep3(event, ori, v, cur, acc, &{fnc.(k, &1, &2, &3, &4, &5, &6, &7, &8)})
+      track_reducep3(event, ori, v, cur, acc, &fnc.(k, &1, &2, &3, &4, &5, &6, &7, &8))
     end)
   end
 
@@ -1071,7 +1391,7 @@ defmodule Mlmap do
   @spec track_reduce_whilep4(nonunchanged, t | :undefined, t | :undefined, t | :undefined, a, red_while_fun4(a)) :: a when a: var
   def track_reduce_whilep4(oevent, orig, diff, curr, acc, fnc) do
     track_reduce_whilep(oevent, orig, diff, curr, acc, fn k, event, ori, v, cur, acc ->
-      track_reduce_whilep3(event, ori, v, cur, acc, &{fnc.(k, &1, &2, &3, &4, &5, &6, &7, &8)})
+      track_reduce_whilep3(event, ori, v, cur, acc, &fnc.(k, &1, &2, &3, &4, &5, &6, &7, &8))
     end)
   end
 

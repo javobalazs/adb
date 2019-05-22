@@ -15,7 +15,6 @@ defmodule Stage do
   merge(start, stage) = internal
   ```
 
-
   `@vsn "#{@vsn}"`
   """
 
@@ -46,6 +45,9 @@ defmodule Stage do
             internal1: nil,
             internal2: nil,
             internal12: nil,
+            last_mod1: nil,
+            last_mod2: nil,
+            last_mod12: nil,
             real: true,
             keep: true,
             pid: nil,
@@ -62,12 +64,12 @@ defmodule Stage do
 
   """
   @type t :: %__MODULE__{
-          stage1: Mlmap.t(),
-          stage2: Mlmap.t(),
-          stage12: Mlmap.t(),
-          diff1: Mlmap.t(),
-          diff2: Mlmap.t(),
-          diff12: Mlmap.t(),
+          stage1: Mlmap.t_diff(),
+          stage2: Mlmap.t_diff(),
+          stage12: Mlmap.t_diff(),
+          diff1: Mlmap.t_diff(),
+          diff2: Mlmap.t_diff(),
+          diff12: Mlmap.t_diff(),
           orig1: Mlmap.t(),
           orig2: Mlmap.t(),
           orig12: Mlmap.t(),
@@ -81,6 +83,9 @@ defmodule Stage do
           internal1: Mlmap.t(),
           internal2: Mlmap.t(),
           internal12: Mlmap.t(),
+          last_mod1: %{String.t() => Integer.t()},
+          last_mod2: %{String.t() => Integer.t()},
+          last_mod12: %{{String.t(), String.t()} => Integer.t()},
           real: Boolean.t(),
           keep: Boolean.t(),
           pid: String.t(),
@@ -115,47 +120,61 @@ defmodule Stage do
   ##              ##    ## ##     ## ##   ### ##    ##    ##    ##    ##  ##     ## ##    ##    ##    ##     ## ##    ##               ##
   ######           ######   #######  ##    ##  ######     ##    ##     ##  #######   ######     ##     #######  ##     ##          ######
 
+  defmacro mconstructor(orig1, orig2, orig12, diff1, diff2, diff12, name, rule_ver, binding, last, internal1, internal2, internal12, last_mod1, last_mod2, last_mod12, real, pid, burst) do
+    mod = __MODULE__
+
+    quote do
+      %unquote(mod){
+        orig1: unquote(orig1),
+        orig2: unquote(orig2),
+        orig12: unquote(orig12),
+        diff1: unquote(diff1),
+        diff2: unquote(diff2),
+        diff12: unquote(diff12),
+        name: unquote(name),
+        rule_ver: unquote(rule_ver),
+        binding: unquote(binding),
+        last: unquote(last),
+        internal1: unquote(internal1),
+        internal2: unquote(internal2),
+        internal12: unquote(internal12),
+        last_mod1: unquote(last_mod1),
+        last_mod2: unquote(last_mod2),
+        last_mod12: unquote(last_mod12),
+        current1: unquote(internal1),
+        current2: unquote(internal2),
+        current12: unquote(internal12),
+        real: unquote(real),
+        keep: unquote(real),
+        pid: unquote(pid),
+        burst: unquote(burst)
+      }
+    end
+  end
+
   @spec constructor(
-          orig1 :: Map.t(),
-          orig2 :: Map.t(),
-          orig12 :: Map.t(),
-          diff1 :: Map.t(),
-          diff2 :: Map.t(),
-          diff12 :: Map.t(),
+          orig1 :: Mulmap.t(),
+          orig2 :: Mulmap.t(),
+          orig12 :: Mulmap.t(),
+          diff1 :: Mulmap.t_diff(),
+          diff2 :: Mulmap.t_diff(),
+          diff12 :: Mulmap.t_diff(),
           name :: Mulmap.iden(),
           rule_ver :: Integer.t(),
           binding :: Rule.binding(),
           last :: Integer.t(),
-          internal1 :: Map.t(),
-          internal2 :: Map.t(),
-          internal12 :: Map.t(),
+          internal1 :: Mulmap.t(),
+          internal2 :: Mulmap.t(),
+          internal12 :: Mulmap.t(),
+          last_mod1 :: %{String.t() => Integer.t()},
+          last_mod2 :: %{String.t() => Integer.t()},
+          last_mod12 :: %{{String.t(), String.t()} => Integer.t()},
           real :: Boolean.t(),
           pid :: String.t(),
           burst :: Rule.burst()
         ) :: t
-  def constructor(orig1, orig2, orig12, diff1, diff2, diff12, name, rule_ver, binding, last, internal1, internal2, internal12, real, pid, burst) do
-    %__MODULE__{
-      orig1: orig1,
-      orig2: orig2,
-      orig12: orig12,
-      diff1: diff1,
-      diff2: diff2,
-      diff12: diff12,
-      name: name,
-      rule_ver: rule_ver,
-      binding: binding,
-      last: last,
-      internal1: internal1,
-      internal2: internal2,
-      internal12: internal12,
-      current1: internal1,
-      current2: internal2,
-      current12: internal12,
-      real: real,
-      keep: real,
-      pid: pid,
-      burst: burst
-    }
+  def constructor(orig1, orig2, orig12, diff1, diff2, diff12, name, rule_ver, binding, last, internal1, internal2, internal12, last_mod1, last_mod2, last_mod12, real, pid, burst) do
+    mconstructor(orig1, orig2, orig12, diff1, diff2, diff12, name, rule_ver, binding, last, internal1, internal2, internal12, last_mod1, last_mod2, last_mod12, real, pid, burst)
   end
 
   @spec get(t, [any], any) :: any
@@ -196,35 +215,53 @@ defmodule Stage do
 
     # Logger.warn("put  #{inspect({lst, val, iden})}")
 
-    internal1 = Mlmap.supdate(s.internal1, lst, val)
-    stage1 = Mlmap.update(s.stage1, lst, val)
+    case Mlmap.supdate(s.internal1, lst, val) do
+      :bump ->
+        s
 
-    {internal2, stage2, internal12, stage12} =
-      case lst do
-        [map, key | rest] ->
-          lst12 = [{map, key} | rest]
-          internal12 = Mlmap.supdate(s.internal12, lst12, val)
-          stage12 = Mlmap.update(s.stage12, lst12, val)
+      :undefined ->
+        %{s | internal1: %{}, stage1: :undefined, internal2: %{}, stage2: :undefined, internal12: %{}, stage12: :undefined}
 
-          if iden != nil do
-            lst2 = [key, map | rest]
-            internal2 = Mlmap.supdate(s.internal2, lst2, val)
-            stage2 = Mlmap.update(s.stage2, lst2, val)
-            {internal2, stage2, internal12, stage12}
-          else
-            {s.internal2, s.stage2, internal12, stage12}
+      {internal1, lst} ->
+        stage1 = Mlmap.update(s.stage1, lst, val)
+
+        {internal2, stage2, internal12, stage12} =
+          case lst do
+            [map, key | rest] ->
+              lst12 = [{map, key} | rest]
+              # Itt ennek jonak kell lennie, nem lehet :undefined vagy :bump...
+              {internal12, lst12} = Mlmap.supdate(s.internal12, lst12, val)
+              stage12 = Mlmap.update(s.stage12, lst12, val)
+
+              if iden != nil do
+                lst2 = [key, map | rest]
+
+                case Mlmap.supdate(s.internal2, lst2, val) do
+                  :bump ->
+                    {s.internal2, s.stage2, internal12, stage12}
+
+                  :undefined ->
+                    {%{}, :undefined, internal12, stage12}
+
+                  {internal2, lst2} ->
+                    stage2 = Mlmap.update(s.stage2, lst2, val)
+                    {internal2, stage2, internal12, stage12}
+                end
+              else
+                {s.internal2, s.stage2, internal12, stage12}
+              end
+
+            _ ->
+              {s.internal2, s.stage2, s.internal12, s.stage12}
           end
 
-        _ ->
-          {s.internal2, s.stage2, s.internal12, s.stage12}
-      end
-
-    %{s | internal1: internal1, stage1: stage1, internal2: internal2, stage2: stage2, internal12: internal12, stage12: stage12}
+        %{s | internal1: internal1, stage1: stage1, internal2: internal2, stage2: stage2, internal12: internal12, stage12: stage12}
+    end
   end
 
   @spec put(t, [{[any], any, iden}]) :: t
   def put(s, lstlst) do
-    # orig -diff-> start -stage-> internal
+    # orig -diff-> current -stage-> internal
 
     {internal1, stage1, internal2, stage2, internal12, stage12} =
       lstlst
@@ -233,26 +270,44 @@ defmodule Stage do
         fn {lst, val, iden}, {internal1, stage1, internal2, stage2, internal12, stage12} ->
           # Logger.warn("putl #{inspect({lst, val, iden})}")
 
-          internal1 = Mlmap.supdate(internal1, lst, val)
-          stage1 = Mlmap.update(stage1, lst, val)
-
-          case lst do
-            [map, key | rest] ->
-              lst12 = [{map, key} | rest]
-              internal12 = Mlmap.supdate(internal12, lst12, val)
-              stage12 = Mlmap.update(stage12, lst12, val)
-
-              if iden != nil do
-                lst2 = [key, map | rest]
-                internal2 = Mlmap.supdate(internal2, lst2, val)
-                stage2 = Mlmap.update(stage2, lst2, val)
-                {internal1, stage1, internal2, stage2, internal12, stage12}
-              else
-                {internal1, stage1, internal2, stage2, internal12, stage12}
-              end
-
-            _ ->
+          case Mlmap.supdate(internal1, lst, val) do
+            :bump ->
               {internal1, stage1, internal2, stage2, internal12, stage12}
+
+            :undefined ->
+              {%{}, :undefined, %{}, :undefined, %{}, :undefined}
+
+            {internal1, ulst} ->
+              stage1 = Mlmap.update(stage1, ulst, val)
+
+              case lst do
+                [map, key | rest] ->
+                  lst12 = [{map, key} | rest]
+                  # Itt ennek jonak kell lennie, nem lehet :undefined vagy :bump...
+                  {internal12, lst12} = Mlmap.supdate(internal12, lst12, val)
+                  stage12 = Mlmap.update(stage12, lst12, val)
+
+                  if iden != nil do
+                    lst2 = [key, map | rest]
+
+                    case Mlmap.supdate(internal2, lst2, val) do
+                      :bump ->
+                        {internal1, stage1, internal2, stage2, internal12, stage12}
+
+                      :undefined ->
+                        {internal1, stage1, %{}, :undefined, internal12, stage12}
+
+                      {internal2, lst2} ->
+                        stage2 = Mlmap.update(stage2, lst2, val)
+                        {internal1, stage1, internal2, stage2, internal12, stage12}
+                    end
+                  else
+                    {internal1, stage1, internal2, stage2, internal12, stage12}
+                  end
+
+                _ ->
+                  {internal1, stage1, internal2, stage2, internal12, stage12}
+              end
           end
         end
       )
@@ -268,6 +323,9 @@ defmodule Stage do
   ##              ##     ## ##       ##    ##  ##    ##  ##                    ##
   ######          ##     ## ######## ##     ##  ######   ########          ######
 
+  @doc """
+  Egy diff-et olvaszt be. Kifejezetten diff-et.
+  """
   @spec merge(t, [any], Map.t(), iden) :: t
   def merge(s, lst, val, iden) do
     # Logger.warn("mer #{inspect({lst, val, iden})}")
@@ -308,20 +366,39 @@ defmodule Stage do
     {internal1, stage1, internal2, stage2, internal12, stage12} =
       Enum.reduce(ops, {s.internal1, s.stage1, s.internal2, s.stage2, s.internal12, s.stage12}, fn {map, key, lst, val, iden}, {internal1, stage1, internal2, stage2, internal12, stage12} ->
         ulst = [map, key | lst]
-        internal1 = Mlmap.smerdate(internal1, ulst, val)
-        stage1 = Mlmap.merdate(stage1, ulst, val)
 
-        lst12 = [{map, key} | lst]
-        internal12 = Mlmap.smerdate(internal12, lst12, val)
-        stage12 = Mlmap.merdate(stage12, lst12, val)
+        case Mlmap.smerdate_aux(internal1, ulst, val) do
+          :bump ->
+            {internal1, stage1, internal2, stage2, internal12, stage12}
 
-        if iden != nil do
-          lst2 = [key, map | lst]
-          internal2 = Mlmap.smerdate(internal2, lst2, val)
-          stage2 = Mlmap.merdate(stage2, lst2, val)
-          {internal1, stage1, internal2, stage2, internal12, stage12}
-        else
-          {internal1, stage1, internal2, stage2, internal12, stage12}
+          :undefined ->
+            {%{}, :undefined, %{}, :undefined, %{}, :undefined}
+
+          {internal1, ulst} ->
+            stage1 = Mlmap.merdate(stage1, ulst, val)
+
+            # Itt ennek jonak kell lennie, nem lehet :undefined vagy :bump...
+            lst12 = [{map, key} | lst]
+            {internal12, lst12} = Mlmap.smerdate_aux(internal12, lst12, val)
+            stage12 = Mlmap.merdate(stage12, lst12, val)
+
+            if iden != nil do
+              lst2 = [key, map | lst]
+
+              case Mlmap.smerdate_aux(internal2, lst2, val) do
+                :bump ->
+                  {internal1, stage1, internal2, stage2, internal12, stage12}
+
+                :undefined ->
+                  {internal1, stage1, %{}, :undefined, internal12, stage12}
+
+                {internal2, lst2} ->
+                  stage2 = Mlmap.merdate(stage2, lst2, val)
+                  {internal1, stage1, internal2, stage2, internal12, stage12}
+              end
+            else
+              {internal1, stage1, internal2, stage2, internal12, stage12}
+            end
         end
       end)
 

@@ -5,7 +5,8 @@ alias ADB.Rule
 
 defmodule Store do
   require Util
-  require Logger
+  require Stage
+  # require Logger
 
   ######          ######## ##    ## ########  ########          ######
   ##                 ##     ##  ##  ##     ## ##                    ##
@@ -37,12 +38,12 @@ defmodule Store do
             qlen: 0
 
   @type t :: %__MODULE__{
-          diffs1: %{Integer.t() => Map.t()},
-          diffs2: %{Integer.t() => Map.t()},
-          diffs12: %{Integer.t() => Map.t()},
-          origs1: %{Integer.t() => Map.t()},
-          origs2: %{Integer.t() => Map.t()},
-          origs12: %{Integer.t() => Map.t()},
+          diffs1: %{Integer.t() => Mlmap.t_diff()},
+          diffs2: %{Integer.t() => Mlmap.t_diff()},
+          diffs12: %{Integer.t() => Mlmap.t_diff()},
+          origs1: %{Integer.t() => Mlmap.t()},
+          origs2: %{Integer.t() => Mlmap.t()},
+          origs12: %{Integer.t() => Mlmap.t()},
           last_mod1: %{String.t() => Integer.t()},
           last_mod2: %{String.t() => Integer.t()},
           last_mod12: %{{String.t(), String.t()} => Integer.t()},
@@ -51,9 +52,9 @@ defmodule Store do
           rules: %{String.t() => Rule.t()},
           last: Integer.t(),
           first: %{Rule.burst() => Integer.t()},
-          internal1: Map.t(),
-          internal2: Map.t(),
-          internal12: Map.t(),
+          internal1: Mlmap.t(),
+          internal2: Mlmap.t(),
+          internal12: Mlmap.t(),
           pid: String.t(),
           msgqueue: [{String.t(), any, any}],
           qlen: Integer.t()
@@ -118,6 +119,11 @@ defmodule Store do
     origs1 = s.origs1
     origs2 = s.origs2
     origs12 = s.origs12
+    last_mod1 = s.last_mod1
+    last_mod2 = s.last_mod2
+    last_mod12 = s.last_mod12
+
+    # Logger.warn("rule: #{name}, last_ver: #{inspect s.last_mod1}, rule_ver: #{inspect s.rules_ver}")
 
     # Diffek kiszedese, atmeneti stage letrehozasa.
     {diff1, diff2, diff12, orig1, orig2, orig12} =
@@ -132,9 +138,19 @@ defmodule Store do
       end
 
     # Logger.warn(" store: #{name} =======store==> #{inspect s, pretty: true} ")
+    # if name == "81store" do
+    #   Logger.warn("81store diff1: #{inspect diff1}")
+    #   Logger.warn("81store diff2: #{inspect diff2}")
+    #   Logger.warn("81store diff12: #{inspect diff12}")
+    # end
+    # if name == "02lock" do
+    #   Logger.warn("02lock diff1: #{inspect diff1}")
+    #   Logger.warn("02lock diff2: #{inspect diff2}")
+    #   Logger.warn("02lock diff12: #{inspect diff12}")
+    # end
 
     # Elokeszites...
-    stage = Stage.constructor(orig1, orig2, orig12, diff1, diff2, diff12, name, rule_time, binding, last, internal1, internal2, internal12, real, s.pid, burst)
+    stage = Stage.mconstructor(orig1, orig2, orig12, diff1, diff2, diff12, name, rule_time, binding, last, internal1, internal2, internal12, last_mod1, last_mod2, last_mod12, real, s.pid, burst)
 
     # Tenyleges vegrehajtas! Utana a valtozasok kiszedese.
     # orig -diff-> start -stage-> internal
@@ -145,14 +161,29 @@ defmodule Store do
     # Megtevesztes! Itt az internal* megegyezik a start*-gal a stage-ben.
     diff1 = stage.stage1 |> Mlmap.filter(internal1)
     diff2 = stage.stage2 |> Mlmap.filter(internal2)
+    # Logger.warn("stage.stage12: #{inspect stage.stage12}, internal12: #{inspect internal12}, vegleges: #{inspect stage.internal12}")
     diff12 = stage.stage12 |> Mlmap.filter(internal12)
     # Logger.warn(" store: #{name} ======diff1====> #{inspect diff1, pretty: true} ")
+    # Logger.warn("diff12: #{inspect diff12}")
+
+    # if name == "81store" do
+    #   Logger.warn("81store udiff1: #{inspect diff1}")
+    #   Logger.warn("81store udiff2: #{inspect diff2}")
+    #   Logger.warn("81store udiff12: #{inspect diff12}")
+    # end
+    # if name == "02lock" do
+    #   Logger.warn("02lock udiff1: #{inspect diff1}")
+    #   Logger.warn("02lock udiff2: #{inspect diff2}")
+    #   Logger.warn("02lock udiff12: #{inspect diff12}")
+    # end
 
     keep = real and stage.keep
 
     # Tortent-e valtozas?
+    # if Map.size(diff1) != 0 or Map.size(diff2) != 0 or Map.size(diff12) != 0 do
+    # Felesleges az 1-re es 12-re ellenorizni, ha azokban van valtozas, akkor az 1-ben is.
     s =
-      if Map.size(diff1) != 0 or Map.size(diff2) != 0 or Map.size(diff12) != 0 do
+      if Map.size(diff1) != 0 do
         ver_num = if keep, do: ver_num_delete(s.ver_num, rule_time), else: s.ver_num
         ver_num = ver_num_delete(ver_num, last)
         lastp1 = last + 1
@@ -182,9 +213,9 @@ defmodule Store do
             rules_ver: if(keep, do: Map.put(s.rules_ver, name, lastp1), else: s.rules_ver),
             # Ez biztosan uj itt.
             ver_num: ver_num,
-            last_mod1: Map.merge(s.last_mod1, mod1),
-            last_mod2: Map.merge(s.last_mod2, mod2),
-            last_mod12: Map.merge(s.last_mod12, mod12),
+            last_mod1: Map.merge(last_mod1, mod1),
+            last_mod2: Map.merge(last_mod2, mod2),
+            last_mod12: Map.merge(last_mod12, mod12),
             internal1: stage.internal1,
             internal2: stage.internal2,
             internal12: stage.internal12
