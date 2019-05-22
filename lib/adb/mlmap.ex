@@ -210,8 +210,9 @@ defmodule Mlmap do
 
   # @compile {:inline, get: 2, get: 3}
   # @spec get(:undefined, [any], a) :: a when a: var
-  @spec get(t, [], any) :: t
-  @spec get(t, nonempty_list(any), any) :: any
+  # @spec get(t, [], any) :: t
+  # @spec get(t, nonempty_list(any), any) :: any
+  @spec get(t | :undefined, [any], any) :: any
   def get(s, lst, defa \\ :undefined) do
     case s do
       :undefined ->
@@ -248,8 +249,9 @@ defmodule Mlmap do
   end
 
   # @compile {:inline, getp: 2, getp: 3}
-  @spec getp(:undefined, any, a) :: a when a: var
-  @spec getp(t, any, any) :: any
+  # @spec getp(:undefined, any, a) :: a when a: var
+  # @spec getp(t, any, any) :: any
+  @spec getp(t | :undefined, any, any) :: any
   def getp(s, key, defa \\ :undefined) do
     case s do
       :undefined ->
@@ -304,6 +306,7 @@ defmodule Mlmap do
   @doc """
   Itt nincs metanyelvi ertelme az `:undefined`-nek, az is csak egy ertek.
   """
+  # @compile {:inline, update: 3}
   @spec update(t, nonempty_list, any) :: t
   @spec update(any, [], a) :: a when a: var
   def update(s, lst, val) do
@@ -326,6 +329,7 @@ defmodule Mlmap do
     end
   end
 
+  # @compile {:inline, merdate: 3}
   @spec merdate(t, [any], t) :: t
   def merdate(s, lst, val) do
     case lst do
@@ -347,6 +351,7 @@ defmodule Mlmap do
     end
   end
 
+  # @compile {:inline, make_from_lst: 2}
   @spec make_from_lst([], a) :: a when a: var
   @spec make_from_lst(nonempty_list(any()), any) :: t
   def make_from_lst(lst, val) do
@@ -479,6 +484,7 @@ defmodule Mlmap do
   @doc """
   Itt normal adatszerkezetekre alkalmazunk diff-eket, azaz a diff-ben metanyelvi ertelme van az `:undefined`-nek.
   """
+  # @compile {:inline, supdate: 3}
   @spec supdate(t, [any], any) :: {t, [any]} | :bump | :undefined
   def supdate(s, lst, val) do
     case val do
@@ -493,6 +499,7 @@ defmodule Mlmap do
     end
   end
 
+  # @compile {:inline, supdate_aux: 3}
   @spec supdate_aux(t, nonempty_list(any), any) :: t | :bump
   @spec supdate_aux(any, [], a) :: :bump | a when a: var
   def supdate_aux(s, lst, val) do
@@ -521,6 +528,7 @@ defmodule Mlmap do
     end
   end
 
+  # @compile {:inline, supdate_aux_u: 2}
   @spec supdate_aux_u(t, nonempty_list(any)) :: {t, [any]} | :undefined | :bump
   @spec supdate_aux_u(any, []) :: :undefined
   def supdate_aux_u(s, lst) do
@@ -564,6 +572,7 @@ defmodule Mlmap do
   #   end
   # end
 
+  # @compile {:inline, smerdate_aux: 3}
   @spec smerdate_aux(t, [any], t_diff) :: {t, [any]} | :undefined | :bump
   def smerdate_aux(s, lst, val) do
     case lst do
@@ -601,12 +610,14 @@ defmodule Mlmap do
     end
   end
 
+  # @compile {:inline, n_smake_from_lst: 2}
   @spec n_smake_from_lst([any], t_diff) :: {t, [any]} | :undefined
   def n_smake_from_lst(lst, val) do
     nval = normalize(val)
     if nval == %{}, do: :undefined, else: {smake_from_lst(lst, nval), lst}
   end
 
+  # @compile {:inline, smake_from_lst: 2}
   @spec smake_from_lst([any], t) :: t
   def smake_from_lst(lst, val) do
     case lst do
@@ -626,6 +637,7 @@ defmodule Mlmap do
   @doc """
   Egy diff alkalmazasa utani allapot, kiszuri a felesleges dolgokat.
   """
+  # @compile {:inline, normalize: 1}
   @spec normalize(t_diff) :: t
   def normalize(s) do
     s
@@ -650,6 +662,7 @@ defmodule Mlmap do
   @doc """
   Egy diff-et optimalizal.
   """
+  # @compile {:inline, filter: 3}
   @spec filter(t_diff, t, any) :: t
   def filter(s, s2, meta \\ :undefined) do
     s
