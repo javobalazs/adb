@@ -366,33 +366,32 @@ defmodule Stage do
     Enum.reduce(ops, {s.internal1, s.stage1, s.internal2, s.stage2, s.internal12, s.stage12}, fn {map, key, lst, val, iden}, {internal1, stage1, internal2, stage2, internal12, stage12} ->
       ulst = [map, key | lst]
 
-      case Mlmap.smerdate_aux(internal1, ulst, val) do
+      case Mlmap.smerdate(internal1, ulst, val) do
         :bump ->
           {internal1, stage1, internal2, stage2, internal12, stage12}
 
         :undefined ->
           {%{}, :undefined, %{}, :undefined, %{}, :undefined}
 
-        {internal1, ulst} ->
-          stage1 = Mlmap.merdate(stage1, ulst, val)
+        {internal1, ulst, nval} ->
+          stage1 = Mlmap.merdate(stage1, ulst, nval)
 
-          # Itt ennek jonak kell lennie, nem lehet :undefined vagy :bump...
           lst12 = [{map, key} | lst]
-          {internal12, lst12} = Mlmap.smerdate_aux(internal12, lst12, val)
-          stage12 = Mlmap.merdate(stage12, lst12, val)
+          {internal12, lst12} = Mlmap.smerdate_n(internal12, lst12, nval)
+          stage12 = Mlmap.merdate(stage12, lst12, nval)
 
           if iden != nil do
             lst2 = [key, map | lst]
 
-            case Mlmap.smerdate_aux(internal2, lst2, val) do
+            case Mlmap.smerdate(internal2, lst2, nval) do
               :bump ->
                 {internal1, stage1, internal2, stage2, internal12, stage12}
 
               :undefined ->
                 {internal1, stage1, %{}, :undefined, internal12, stage12}
 
-              {internal2, lst2} ->
-                stage2 = Mlmap.merdate(stage2, lst2, val)
+              {internal2, lst2, nval} ->
+                stage2 = Mlmap.merdate(stage2, lst2, nval)
                 {internal1, stage1, internal2, stage2, internal12, stage12}
             end
           else

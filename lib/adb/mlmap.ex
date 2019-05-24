@@ -483,6 +483,11 @@ defmodule Mlmap do
   @doc """
   Itt normal adatszerkezetekre alkalmazunk diff-eket, azaz a diff-ben metanyelvi ertelme van az `:undefined`-nek.
   """
+
+  # @spec smerge(t, t_diff) :: :bump | :undefined | {t, t_diff}
+  # def smerge(s, diff) do
+  # end
+
   # @compile {:inline, supdate: 3}
   @spec supdate(t, [any], any) :: {t, [any]} | :bump | :undefined
   def supdate(s, lst, val) do
@@ -560,42 +565,36 @@ defmodule Mlmap do
     end
   end
 
-  # @spec smerdate(t, [any], t_diff) :: {t, [any]}
-  # def smerdate(s, lst, val) do
-  #   case smerdate_aux(s, lst, val) do
-  #     :undefined -> {%{}, []}
-  #     res -> res
-  #   end
-  # end
-
-  # @compile {:inline, smerdate_aux: 3}
-  @spec smerdate_aux(t, [any], t_diff) :: {t, [any]} | :undefined | :bump
-  def smerdate_aux(s, lst, val) do
+  # @compile {:inline, smerdate: 3}
+  @spec smerdate(t, [any], t_diff) :: {t, [any], t_diff} | :undefined | :bump
+  def smerdate(s, lst, val) do
     case lst do
       [] ->
-        res = merge(s, val) |> normalize()
+        Util.wife :undefined, val != :undefined do
+          res = merge(s, val) |> normalize()
 
-        Util.wife :undefined, res != %{} do
-          if res == s, do: :bump, else: {res, []}
+          Util.wife :undefined, res != %{} do
+            if res == s, do: :bump, else: {res, [], val}
+          end
         end
 
       [key | rest] ->
         casemap s do
           case Map.fetch(s, key) do
-            {:ok, map} -> smerdate_aux(map, rest, val)
+            {:ok, map} -> smerdate(map, rest, val)
             :error -> n_smake_from_lst(rest, val)
           end >>> upd
 
           case upd do
             :undefined ->
               s = Map.delete(s, key)
-              if s == %{}, do: :undefined, else: {s, lst}
+              if s == %{}, do: :undefined, else: {s, lst, :undefined}
 
             :bump ->
               :bump
 
-            {mp, rslst} ->
-              {Map.put(s, key, mp), [key | rslst]}
+            {mp, rslst, nval} ->
+              {Map.put(s, key, mp), [key | rslst], nval}
           end
         else
           n_smake_from_lst(rest, val)
@@ -603,11 +602,49 @@ defmodule Mlmap do
     end
   end
 
+  # @compile {:inline, smerdate_n: 3}
+  @spec smerdate_n(t, [any], t_diff) :: {t, [any]}
+  def smerdate_n(s, lst, val) do
+    case lst do
+      [] ->
+        Util.wife :undefined, val != :undefined do
+          res = merge(s, val) |> normalize()
+
+          Util.wife :undefined, res != %{} do
+            if res == s, do: :bump, else: {res, []}
+          end
+        end
+
+      [key | rest] ->
+        casemap s do
+          case Map.fetch(s, key) do
+            {:ok, map} -> smerdate_n(map, rest, val)
+            # Nem kell normalizalni, mar az elozo korben normalizalodnia kellett, itt csak insert lehet benne!
+            :error -> Util.wife(:undefined, val != :undefined, do: {smake_from_lst(rest, val), rest})
+          end >>> upd
+
+          case upd do
+            :undefined ->
+              s = Map.delete(s, key)
+              if s == %{}, do: :undefined, else: {s, lst}
+
+            {mp, rslst} ->
+              {Map.put(s, key, mp), [key | rslst]}
+          end
+        else
+          # Nem kell normalizalni, mar az elozo korben normalizalodnia kellett, itt csak insert lehet benne!
+          Util.wife(:undefined, val != :undefined, do: {%{key => smake_from_lst(rest, val)}, lst})
+        end
+    end
+  end
+
   # @compile {:inline, n_smake_from_lst: 2}
-  @spec n_smake_from_lst([any], t_diff) :: {t, [any]} | :undefined
+  @spec n_smake_from_lst([any], t_diff) :: {t, [any], t_diff} | :undefined
   def n_smake_from_lst(lst, val) do
-    nval = normalize(val)
-    if nval == %{}, do: :undefined, else: {smake_from_lst(lst, nval), lst}
+    Util.wife :undefined, val != :undefined do
+      nval = normalize(val)
+      if nval == %{}, do: :undefined, else: {smake_from_lst(lst, nval), lst, nval}
+    end
   end
 
   # @compile {:inline, smake_from_lst: 2}
