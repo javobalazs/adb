@@ -33,14 +33,16 @@ wmonad do
 end
 ```
 
-Ha valami hiba van:
+### Ha valami hiba van
+
 ```elixir
 wmonad do
   wo(x) = if x.ertek == joertek, do: wo(x transzformalva), else: we "elbaszott_attributum: #{inspect x.ertek}, elvart: #{inspect joertek}"
 end
 ```
 
-Ritkabban:
+### Ritkabban
+
 ```elixir
 wmonad do
   wo(x) = if x.ertek == joertek, do: wo(x transzformalva), else: wf {:elbaszott_attributum, x.ertek}
@@ -52,6 +54,61 @@ Ha a hibauzenet szoveges, eggyel magasabb szinten ki lehet egesziteni:
 wo(valami) = wext monadikus_fuggveny(valami), " izemize"
 ```
 Ilyenkor, ha hiba van, a hibauzenethez hozzacsapodik az `"izemize"`.
+
+
+### Egyeb:
+
+```elixir
+Util.wmatch([title, folder_id], params, BAD_SAND_VOTE_COLLECTION_PARAMS)
+```
+Megnezi, hogy `params` illeszkedik-e `[title, folder_id]`-re.
+Ha igen, megy tovabb, es az illeszkedes miatt a valtozok fel is veszik az ertekeket.
+Ha nem, visszaadja az `Util.wf(BAD_SAND_VOTE_COLLECTION_PARAMS)` hibat.
+
+```elixir
+Util.wcond(pr == nil, BAD_SAND_VOTE_COLLECTION_FOLDER)
+```
+Ha `pr == nil`, akkor `Util.wf(BAD_SAND_VOTE_COLLECTION_FOLDER)`.
+
+```elixir
+Util.wcall(valami(param))
+# ekvivalens:
+:ok = valami(param)
+```
+ahol `valami(param)` vagy `:ok`-t ad vissza, vagy `{:error, term}`-et.
+
+
+## Olvashatosag
+
+```elixir
+require Util
+```
+
+Ekvivalens:
+```elixir
+var = if condi, do: clause, else: var
+Util.wif var, condi, do: clause
+```
+
+Ekvivalens:
+```elixir
+if condi, do: clause, else: var
+Util.wife var, condi, do: clause
+```
+
+## Hatravetett ertekadas
+
+```elixir
+defmodule Valami do
+  require Uitl
+  Util.arrow_assignment()
+  def shitty_function(x, y, z) do
+    # Ezek ekvivalensek.
+    var = expr
+    expr >>> var
+  end
+end
+```
 
 ## Pdecoder
 

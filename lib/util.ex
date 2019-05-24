@@ -180,6 +180,7 @@ defmodule Util do
   Ekvivalens:
   ```elixir
   var = if condi, do: clause, else: var
+  Util.wif var, condi, do: clause
   ```
   """
   defmacro wif(var, condi, do: clause) do
@@ -194,9 +195,10 @@ defmodule Util do
   end
 
   @doc """
-  Kifejezes, ekvivalens:
+  Ekvivalens:
   ```elixir
   if condi, do: clause, else: var
+  Util.wife var, condi, do: clause
   ```
   """
   defmacro wife(var, condi, do: clause) do
@@ -214,6 +216,30 @@ defmodule Util do
   """
   @spec comment(String.t()) :: Macro.t()
   defmacro comment(_text) do
+  end
+
+  @doc """
+  Hatravetett ertekadasi operatort definial.
+  ```elixir
+  defmodule Valami do
+    require Uitl
+    Util.arrow_assignment()
+    def shitty_function(x, y, z) do
+      # Ezek ekvivalensek.
+      var = expr
+      expr >>> var
+    end
+  end
+  ```
+  """
+  defmacro arrow_assignment() do
+    quote do
+      defmacro expr >>> var do
+        quote do
+          unquote(var) = unquote(expr)
+        end
+      end
+    end
   end
 
   # defmodule
