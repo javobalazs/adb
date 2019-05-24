@@ -7,6 +7,8 @@ defmodule Stage do
 
   require Mlmap
   # require Logger
+  require Util
+  Util.arrow_assignment()
 
   @moduledoc """
 
@@ -225,35 +227,34 @@ defmodule Stage do
       {internal1, lst} ->
         stage1 = Mlmap.update(s.stage1, lst, val)
 
-        {internal2, stage2, internal12, stage12} =
-          case lst do
-            [map, key | rest] ->
-              lst12 = [{map, key} | rest]
-              # Itt ennek jonak kell lennie, nem lehet :undefined vagy :bump...
-              {internal12, lst12} = Mlmap.supdate(s.internal12, lst12, val)
-              stage12 = Mlmap.update(s.stage12, lst12, val)
+        case lst do
+          [map, key | rest] ->
+            lst12 = [{map, key} | rest]
+            # Itt ennek jonak kell lennie, nem lehet :undefined vagy :bump...
+            {internal12, lst12} = Mlmap.supdate(s.internal12, lst12, val)
+            stage12 = Mlmap.update(s.stage12, lst12, val)
 
-              if iden != nil do
-                lst2 = [key, map | rest]
+            if iden != nil do
+              lst2 = [key, map | rest]
 
-                case Mlmap.supdate(s.internal2, lst2, val) do
-                  :bump ->
-                    {s.internal2, s.stage2, internal12, stage12}
+              case Mlmap.supdate(s.internal2, lst2, val) do
+                :bump ->
+                  {s.internal2, s.stage2, internal12, stage12}
 
-                  :undefined ->
-                    {%{}, :undefined, internal12, stage12}
+                :undefined ->
+                  {%{}, :undefined, internal12, stage12}
 
-                  {internal2, lst2} ->
-                    stage2 = Mlmap.update(s.stage2, lst2, val)
-                    {internal2, stage2, internal12, stage12}
-                end
-              else
-                {s.internal2, s.stage2, internal12, stage12}
+                {internal2, lst2} ->
+                  stage2 = Mlmap.update(s.stage2, lst2, val)
+                  {internal2, stage2, internal12, stage12}
               end
+            else
+              {s.internal2, s.stage2, internal12, stage12}
+            end
 
-            _ ->
-              {s.internal2, s.stage2, s.internal12, s.stage12}
-          end
+          _ ->
+            {s.internal2, s.stage2, s.internal12, s.stage12}
+        end >>> {internal2, stage2, internal12, stage12}
 
         %{s | internal1: internal1, stage1: stage1, internal2: internal2, stage2: stage2, internal12: internal12, stage12: stage12}
     end
@@ -263,54 +264,53 @@ defmodule Stage do
   def put(s, lstlst) do
     # orig -diff-> current -stage-> internal
 
-    {internal1, stage1, internal2, stage2, internal12, stage12} =
-      lstlst
-      |> Enum.reduce(
-        {s.internal1, s.stage1, s.internal2, s.stage2, s.internal12, s.stage12},
-        fn {lst, val, iden}, {internal1, stage1, internal2, stage2, internal12, stage12} ->
-          # Logger.warn("putl #{inspect({lst, val, iden})}")
+    lstlst
+    |> Enum.reduce(
+      {s.internal1, s.stage1, s.internal2, s.stage2, s.internal12, s.stage12},
+      fn {lst, val, iden}, {internal1, stage1, internal2, stage2, internal12, stage12} ->
+        # Logger.warn("putl #{inspect({lst, val, iden})}")
 
-          case Mlmap.supdate(internal1, lst, val) do
-            :bump ->
-              {internal1, stage1, internal2, stage2, internal12, stage12}
+        case Mlmap.supdate(internal1, lst, val) do
+          :bump ->
+            {internal1, stage1, internal2, stage2, internal12, stage12}
 
-            :undefined ->
-              {%{}, :undefined, %{}, :undefined, %{}, :undefined}
+          :undefined ->
+            {%{}, :undefined, %{}, :undefined, %{}, :undefined}
 
-            {internal1, ulst} ->
-              stage1 = Mlmap.update(stage1, ulst, val)
+          {internal1, ulst} ->
+            stage1 = Mlmap.update(stage1, ulst, val)
 
-              case lst do
-                [map, key | rest] ->
-                  lst12 = [{map, key} | rest]
-                  # Itt ennek jonak kell lennie, nem lehet :undefined vagy :bump...
-                  {internal12, lst12} = Mlmap.supdate(internal12, lst12, val)
-                  stage12 = Mlmap.update(stage12, lst12, val)
+            case lst do
+              [map, key | rest] ->
+                lst12 = [{map, key} | rest]
+                # Itt ennek jonak kell lennie, nem lehet :undefined vagy :bump...
+                {internal12, lst12} = Mlmap.supdate(internal12, lst12, val)
+                stage12 = Mlmap.update(stage12, lst12, val)
 
-                  if iden != nil do
-                    lst2 = [key, map | rest]
+                if iden != nil do
+                  lst2 = [key, map | rest]
 
-                    case Mlmap.supdate(internal2, lst2, val) do
-                      :bump ->
-                        {internal1, stage1, internal2, stage2, internal12, stage12}
+                  case Mlmap.supdate(internal2, lst2, val) do
+                    :bump ->
+                      {internal1, stage1, internal2, stage2, internal12, stage12}
 
-                      :undefined ->
-                        {internal1, stage1, %{}, :undefined, internal12, stage12}
+                    :undefined ->
+                      {internal1, stage1, %{}, :undefined, internal12, stage12}
 
-                      {internal2, lst2} ->
-                        stage2 = Mlmap.update(stage2, lst2, val)
-                        {internal1, stage1, internal2, stage2, internal12, stage12}
-                    end
-                  else
-                    {internal1, stage1, internal2, stage2, internal12, stage12}
+                    {internal2, lst2} ->
+                      stage2 = Mlmap.update(stage2, lst2, val)
+                      {internal1, stage1, internal2, stage2, internal12, stage12}
                   end
-
-                _ ->
+                else
                   {internal1, stage1, internal2, stage2, internal12, stage12}
-              end
-          end
+                end
+
+              _ ->
+                {internal1, stage1, internal2, stage2, internal12, stage12}
+            end
         end
-      )
+      end
+    ) >>> {internal1, stage1, internal2, stage2, internal12, stage12}
 
     %{s | internal1: internal1, stage1: stage1, internal2: internal2, stage2: stage2, internal12: internal12, stage12: stage12}
   end
@@ -363,44 +363,43 @@ defmodule Stage do
 
   @spec merge_2level(t, [{any, any, [any], Map.t(), iden}]) :: t
   def merge_2level(s, ops) do
-    {internal1, stage1, internal2, stage2, internal12, stage12} =
-      Enum.reduce(ops, {s.internal1, s.stage1, s.internal2, s.stage2, s.internal12, s.stage12}, fn {map, key, lst, val, iden}, {internal1, stage1, internal2, stage2, internal12, stage12} ->
-        ulst = [map, key | lst]
+    Enum.reduce(ops, {s.internal1, s.stage1, s.internal2, s.stage2, s.internal12, s.stage12}, fn {map, key, lst, val, iden}, {internal1, stage1, internal2, stage2, internal12, stage12} ->
+      ulst = [map, key | lst]
 
-        case Mlmap.smerdate_aux(internal1, ulst, val) do
-          :bump ->
-            {internal1, stage1, internal2, stage2, internal12, stage12}
+      case Mlmap.smerdate_aux(internal1, ulst, val) do
+        :bump ->
+          {internal1, stage1, internal2, stage2, internal12, stage12}
 
-          :undefined ->
-            {%{}, :undefined, %{}, :undefined, %{}, :undefined}
+        :undefined ->
+          {%{}, :undefined, %{}, :undefined, %{}, :undefined}
 
-          {internal1, ulst} ->
-            stage1 = Mlmap.merdate(stage1, ulst, val)
+        {internal1, ulst} ->
+          stage1 = Mlmap.merdate(stage1, ulst, val)
 
-            # Itt ennek jonak kell lennie, nem lehet :undefined vagy :bump...
-            lst12 = [{map, key} | lst]
-            {internal12, lst12} = Mlmap.smerdate_aux(internal12, lst12, val)
-            stage12 = Mlmap.merdate(stage12, lst12, val)
+          # Itt ennek jonak kell lennie, nem lehet :undefined vagy :bump...
+          lst12 = [{map, key} | lst]
+          {internal12, lst12} = Mlmap.smerdate_aux(internal12, lst12, val)
+          stage12 = Mlmap.merdate(stage12, lst12, val)
 
-            if iden != nil do
-              lst2 = [key, map | lst]
+          if iden != nil do
+            lst2 = [key, map | lst]
 
-              case Mlmap.smerdate_aux(internal2, lst2, val) do
-                :bump ->
-                  {internal1, stage1, internal2, stage2, internal12, stage12}
+            case Mlmap.smerdate_aux(internal2, lst2, val) do
+              :bump ->
+                {internal1, stage1, internal2, stage2, internal12, stage12}
 
-                :undefined ->
-                  {internal1, stage1, %{}, :undefined, internal12, stage12}
+              :undefined ->
+                {internal1, stage1, %{}, :undefined, internal12, stage12}
 
-                {internal2, lst2} ->
-                  stage2 = Mlmap.merdate(stage2, lst2, val)
-                  {internal1, stage1, internal2, stage2, internal12, stage12}
-              end
-            else
-              {internal1, stage1, internal2, stage2, internal12, stage12}
+              {internal2, lst2} ->
+                stage2 = Mlmap.merdate(stage2, lst2, val)
+                {internal1, stage1, internal2, stage2, internal12, stage12}
             end
-        end
-      end)
+          else
+            {internal1, stage1, internal2, stage2, internal12, stage12}
+          end
+      end
+    end) >>> {internal1, stage1, internal2, stage2, internal12, stage12}
 
     %{s | internal1: internal1, stage1: stage1, internal2: internal2, stage2: stage2, internal12: internal12, stage12: stage12}
   end
@@ -417,43 +416,42 @@ defmodule Stage do
   def bulk(s, lstlst) do
     # Logger.warn("mer #{inspect({lst, val, iden})}")
 
-    {l1, l2} =
-      lstlst
-      |> Enum.reduce({[], []}, fn x, {l1, l2} ->
-        case x do
-          {_lst, _val, _iden} ->
-            {[x | l1], l2}
+    lstlst
+    |> Enum.reduce({[], []}, fn x, {l1, l2} ->
+      case x do
+        {_lst, _val, _iden} ->
+          {[x | l1], l2}
 
-          {_map, _key, _lst, _val, _iden} ->
-            {l1, [x | l2]}
+        {_map, _key, _lst, _val, _iden} ->
+          {l1, [x | l2]}
 
-          {:merge, lst, val, iden} ->
-            case lst do
-              [map, key | rest] ->
-                {l1, [{map, key, rest, val, iden} | l2]}
+        {:merge, lst, val, iden} ->
+          case lst do
+            [map, key | rest] ->
+              {l1, [{map, key, rest, val, iden} | l2]}
 
-              [map] ->
-                Enum.reduce(val, {l1, l2}, fn {key, v}, {acc1, acc2} ->
-                  Mlmap.casemap v do
-                    {acc1, [{map, key, [], v, iden} | acc2]}
-                  else
-                    {[{[map, key], v, iden} | acc1], acc2}
-                  end
-                end)
+            [map] ->
+              Enum.reduce(val, {l1, l2}, fn {key, v}, {acc1, acc2} ->
+                Mlmap.casemap v do
+                  {acc1, [{map, key, [], v, iden} | acc2]}
+                else
+                  {[{[map, key], v, iden} | acc1], acc2}
+                end
+              end)
 
-              _ ->
-                Enum.reduce(val, {l1, l2}, fn {map, v2}, {acc1, acc2} ->
-                  Mlmap.casemap v2 do
-                    Enum.reduce(v2, {acc1, acc2}, fn {key, v}, {acc1x, acc2x} ->
-                      Mlmap.casemap(v, do: {acc1x, [{map, key, [], v, iden} | acc2x]}, else: {[{[map, key], v, iden} | acc1x], acc2x})
-                    end)
-                  else
-                    {[{[map], v2, iden} | acc1], acc2}
-                  end
-                end)
-            end
-        end
-      end)
+            _ ->
+              Enum.reduce(val, {l1, l2}, fn {map, v2}, {acc1, acc2} ->
+                Mlmap.casemap v2 do
+                  Enum.reduce(v2, {acc1, acc2}, fn {key, v}, {acc1x, acc2x} ->
+                    Mlmap.casemap(v, do: {acc1x, [{map, key, [], v, iden} | acc2x]}, else: {[{[map, key], v, iden} | acc1x], acc2x})
+                  end)
+                else
+                  {[{[map], v2, iden} | acc1], acc2}
+                end
+              end)
+          end
+      end
+    end) >>> {l1, l2}
 
     s = put(s, l1)
     s = merge_2level(s, l2)

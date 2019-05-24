@@ -5,6 +5,7 @@ alias ADB.Rule
 
 defmodule Store do
   require Util
+  Util.arrow_assignment()
   require Stage
   # require Logger
 
@@ -85,14 +86,13 @@ defmodule Store do
         # Vonatkozik-e ra a dolog?
         last_mod_check = s.last_mod1 |> Map.take(rule.observe1_eff) |> Enum.reduce_while(false, fn {_k, ver}, _acc -> if(ver > rule_time, do: {:halt, true}, else: {:cont, false}) end)
 
-        last_mod_check =
-          Util.wife true, !last_mod_check do
-            last_mod_check = s.last_mod2 |> Map.take(rule.observe2_eff) |> Enum.reduce_while(false, fn {_k, ver}, _acc -> if(ver > rule_time, do: {:halt, true}, else: {:cont, false}) end)
+        Util.wife true, !last_mod_check do
+          last_mod_check = s.last_mod2 |> Map.take(rule.observe2_eff) |> Enum.reduce_while(false, fn {_k, ver}, _acc -> if(ver > rule_time, do: {:halt, true}, else: {:cont, false}) end)
 
-            Util.wife true, !last_mod_check do
-              s.last_mod12 |> Map.take(rule.observe12_eff) |> Enum.reduce_while(false, fn {_k, ver}, _acc -> if(ver > rule_time, do: {:halt, true}, else: {:cont, false}) end)
-            end
+          Util.wife true, !last_mod_check do
+            s.last_mod12 |> Map.take(rule.observe12_eff) |> Enum.reduce_while(false, fn {_k, ver}, _acc -> if(ver > rule_time, do: {:halt, true}, else: {:cont, false}) end)
           end
+        end >>> last_mod_check
 
         # Volt-e egyaltalan valtozas?
         if last_mod_check do
@@ -126,16 +126,16 @@ defmodule Store do
     # Logger.warn("rule: #{name}, last_ver: #{inspect s.last_mod1}, rule_ver: #{inspect s.rules_ver}")
 
     # Diffek kiszedese, atmeneti stage letrehozasa.
-    {diff1, diff2, diff12, orig1, orig2, orig12} =
-      if real do
-        if rule_time == 0 do
-          {internal1, internal2, internal12, %{}, %{}, %{}}
-        else
-          {diffs1 |> Map.get(rule_time), diffs2 |> Map.get(rule_time), diffs12 |> Map.get(rule_time), origs1 |> Map.get(rule_time), origs2 |> Map.get(rule_time), origs12 |> Map.get(rule_time)}
-        end
+
+    if real do
+      if rule_time == 0 do
+        {internal1, internal2, internal12, %{}, %{}, %{}}
       else
-        {%{}, %{}, %{}, internal1, internal2, internal12}
+        {diffs1 |> Map.get(rule_time), diffs2 |> Map.get(rule_time), diffs12 |> Map.get(rule_time), origs1 |> Map.get(rule_time), origs2 |> Map.get(rule_time), origs12 |> Map.get(rule_time)}
       end
+    else
+      {%{}, %{}, %{}, internal1, internal2, internal12}
+    end >>> {diff1, diff2, diff12, orig1, orig2, orig12}
 
     # Logger.warn(" store: #{name} =======store==> #{inspect s, pretty: true} ")
     # if name == "81store" do
@@ -182,47 +182,47 @@ defmodule Store do
     # Tortent-e valtozas?
     # if Map.size(diff1) != 0 or Map.size(diff2) != 0 or Map.size(diff12) != 0 do
     # Felesleges az 1-re es 12-re ellenorizni, ha azokban van valtozas, akkor az 1-ben is.
-    s =
-      if Map.size(diff1) != 0 do
-        ver_num = if keep, do: ver_num_delete(s.ver_num, rule_time), else: s.ver_num
-        ver_num = ver_num_delete(ver_num, last)
-        lastp1 = last + 1
-        ver_num = Map.put(ver_num, lastp1, if(keep, do: 2, else: 1))
 
-        # Valtozasok atvezetese.
-        diffs1 = diffs1 |> Enum.filter(fn {k, _d} -> Map.get(ver_num, k, 0) > 0 end) |> Enum.map(fn {k, d} -> {k, Mlmap.merge(d, diff1)} end)
-        diffs1 = [{last, diff1} | diffs1]
-        diffs2 = diffs2 |> Enum.filter(fn {k, _d} -> Map.get(ver_num, k, 0) > 0 end) |> Enum.map(fn {k, d} -> {k, Mlmap.merge(d, diff2)} end)
-        diffs2 = [{last, diff2} | diffs2]
-        diffs12 = diffs12 |> Enum.filter(fn {k, _d} -> Map.get(ver_num, k, 0) > 0 end) |> Enum.map(fn {k, d} -> {k, Mlmap.merge(d, diff12)} end)
-        diffs12 = [{last, diff12} | diffs12]
+    if Map.size(diff1) != 0 do
+      ver_num = if keep, do: ver_num_delete(s.ver_num, rule_time), else: s.ver_num
+      ver_num = ver_num_delete(ver_num, last)
+      lastp1 = last + 1
+      ver_num = Map.put(ver_num, lastp1, if(keep, do: 2, else: 1))
 
-        mod1 = diff1 |> Map.keys() |> Enum.map(fn x -> {x, lastp1} end) |> Map.new()
-        mod2 = diff2 |> Map.keys() |> Enum.map(fn x -> {x, lastp1} end) |> Map.new()
-        mod12 = diff12 |> Map.keys() |> Enum.map(fn x -> {x, lastp1} end) |> Map.new()
+      # Valtozasok atvezetese.
+      diffs1 = diffs1 |> Enum.filter(fn {k, _d} -> Map.get(ver_num, k, 0) > 0 end) |> Enum.map(fn {k, d} -> {k, Mlmap.merge(d, diff1)} end)
+      diffs1 = [{last, diff1} | diffs1]
+      diffs2 = diffs2 |> Enum.filter(fn {k, _d} -> Map.get(ver_num, k, 0) > 0 end) |> Enum.map(fn {k, d} -> {k, Mlmap.merge(d, diff2)} end)
+      diffs2 = [{last, diff2} | diffs2]
+      diffs12 = diffs12 |> Enum.filter(fn {k, _d} -> Map.get(ver_num, k, 0) > 0 end) |> Enum.map(fn {k, d} -> {k, Mlmap.merge(d, diff12)} end)
+      diffs12 = [{last, diff12} | diffs12]
 
-        %{
-          s
-          | diffs1: Map.new(diffs1),
-            diffs2: Map.new(diffs2),
-            diffs12: Map.new(diffs12),
-            origs1: Map.put(origs1, last, internal1),
-            origs2: Map.put(origs2, last, internal2),
-            origs12: Map.put(origs12, last, internal12),
-            last: lastp1,
-            rules_ver: if(keep, do: Map.put(s.rules_ver, name, lastp1), else: s.rules_ver),
-            # Ez biztosan uj itt.
-            ver_num: ver_num,
-            last_mod1: Map.merge(last_mod1, mod1),
-            last_mod2: Map.merge(last_mod2, mod2),
-            last_mod12: Map.merge(last_mod12, mod12),
-            internal1: stage.internal1,
-            internal2: stage.internal2,
-            internal12: stage.internal12
-        }
-      else
-        if keep, do: ver_num_bump(s, last, name, rule_time), else: s
-      end
+      mod1 = diff1 |> Map.keys() |> Enum.map(fn x -> {x, lastp1} end) |> Map.new()
+      mod2 = diff2 |> Map.keys() |> Enum.map(fn x -> {x, lastp1} end) |> Map.new()
+      mod12 = diff12 |> Map.keys() |> Enum.map(fn x -> {x, lastp1} end) |> Map.new()
+
+      %{
+        s
+        | diffs1: Map.new(diffs1),
+          diffs2: Map.new(diffs2),
+          diffs12: Map.new(diffs12),
+          origs1: Map.put(origs1, last, internal1),
+          origs2: Map.put(origs2, last, internal2),
+          origs12: Map.put(origs12, last, internal12),
+          last: lastp1,
+          rules_ver: if(keep, do: Map.put(s.rules_ver, name, lastp1), else: s.rules_ver),
+          # Ez biztosan uj itt.
+          ver_num: ver_num,
+          last_mod1: Map.merge(last_mod1, mod1),
+          last_mod2: Map.merge(last_mod2, mod2),
+          last_mod12: Map.merge(last_mod12, mod12),
+          internal1: stage.internal1,
+          internal2: stage.internal2,
+          internal12: stage.internal12
+      }
+    else
+      Util.wife(s, keep, do: ver_num_bump(s, last, name, rule_time))
+    end >>> s
 
     # Az msgqueue kezelese fuggetlen attol, hogy valtoztatott-e vagy `!keep`,
     # mivel siman lehet, hogy a hibas imperativ muveletet akarja jelezni csak,
@@ -272,24 +272,21 @@ defmodule Store do
     last = s.last
     lst = s.msgqueue |> Enum.reverse()
 
-    s =
-      if lst != [] do
-        execute_step(
-          %{s | msgqueue: [], qlen: 0},
-          "input",
-          0,
-          %{},
-          fn stage ->
-            stage = Stage.put(stage, lst)
-            # Logger.debug("stage: #{inspect(stage)}")
-            stage
-          end,
-          false,
-          :checkin
-        )
-      else
-        s
-      end
+    Util.wife s, lst != [] do
+      execute_step(
+        %{s | msgqueue: [], qlen: 0},
+        "input",
+        0,
+        %{},
+        fn stage ->
+          stage = Stage.put(stage, lst)
+          # Logger.debug("stage: #{inspect(stage)}")
+          stage
+        end,
+        false,
+        :checkin
+      )
+    end >>> s
 
     # Logger.info("sep")
     # Logger.debug("store: #{inspect(s)}")
@@ -302,17 +299,14 @@ defmodule Store do
     # Logger.debug("store_cpu: #{inspect(s)}")
     s = full_burst(s, :checkout)
 
-    s =
-      if last < s.last do
-        # Felesleges verziok kiszedese
-        ver_num = s.ver_num
-        origs1 = s.origs1 |> Enum.filter(fn {k, _d} -> Map.get(ver_num, k, 0) > 0 end)
-        origs2 = s.origs2 |> Enum.filter(fn {k, _d} -> Map.get(ver_num, k, 0) > 0 end)
-        origs12 = s.origs12 |> Enum.filter(fn {k, _d} -> Map.get(ver_num, k, 0) > 0 end)
-        %{s | origs1: Map.new(origs1), origs2: Map.new(origs2), origs12: Map.new(origs12)}
-      else
-        s
-      end
+    Util.wife s, last < s.last do
+      # Felesleges verziok kiszedese
+      ver_num = s.ver_num
+      origs1 = s.origs1 |> Enum.filter(fn {k, _d} -> Map.get(ver_num, k, 0) > 0 end)
+      origs2 = s.origs2 |> Enum.filter(fn {k, _d} -> Map.get(ver_num, k, 0) > 0 end)
+      origs12 = s.origs12 |> Enum.filter(fn {k, _d} -> Map.get(ver_num, k, 0) > 0 end)
+      %{s | origs1: Map.new(origs1), origs2: Map.new(origs2), origs12: Map.new(origs12)}
+    end >>> s
 
     # Logger.info("sep")
     # Logger.debug("store_checkout: #{inspect(s)}")
@@ -350,7 +344,7 @@ defmodule Store do
     first = Map.put(s.first, burst, 0)
     rules = Map.put(s.rules, name, rule)
     s = %{s | first: first, rules: rules}
-    if constructor != nil, do: execute_step(s, name, 0, rule.binding, constructor, true, :checkin), else: s
+    Util.wife(s, constructor != nil, do: execute_step(s, name, 0, rule.binding, constructor, true, :checkin))
   end
 
   @spec uninstall(t, String.t()) :: t
@@ -358,7 +352,7 @@ defmodule Store do
     rules = s.rules
     rule = Map.get(rules, name, nil)
 
-    if rule != nil do
+    Util.wife s, rule != nil do
       rules = Map.delete(rules, name)
       rules_ver = s.rules_ver
       rule_time = Map.get(rules_ver, name, 0)
@@ -366,9 +360,7 @@ defmodule Store do
       ver_num = ver_num_delete(s.ver_num, rule_time)
       s = %{s | rules: rules, rules_ver: rules_ver, ver_num: ver_num}
       destructor = rule.destructor
-      if destructor != nil, do: execute_step(s, name, rule_time, rule.binding, destructor, false, :checkin), else: s
-    else
-      s
+      Util.wife(s, destructor != nil, do: execute_step(s, name, rule_time, rule.binding, destructor, false, :checkin))
     end
   end
 

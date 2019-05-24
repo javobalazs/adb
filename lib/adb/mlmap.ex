@@ -47,6 +47,7 @@ defmodule Mlmap do
   """
 
   require Util
+  Util.arrow_assignment()
 
   @typedoc """
   Ez elvileg nem tartalmazza a metanyelvi `:undefined`-et.
@@ -316,11 +317,10 @@ defmodule Mlmap do
 
       [key | rest] ->
         casemap s do
-          upd =
-            case Map.fetch(s, key) do
-              {:ok, map} -> update(map, rest, val)
-              :error -> make_from_lst(rest, val)
-            end
+          case Map.fetch(s, key) do
+            {:ok, map} -> update(map, rest, val)
+            :error -> make_from_lst(rest, val)
+          end >>> upd
 
           Map.put(s, key, upd)
         else
@@ -338,11 +338,10 @@ defmodule Mlmap do
 
       [key | rest] ->
         casemap s do
-          upd =
-            case Map.fetch(s, key) do
-              {:ok, map} -> merdate(map, rest, val)
-              :error -> make_from_lst(rest, val)
-            end
+          case Map.fetch(s, key) do
+            {:ok, map} -> merdate(map, rest, val)
+            :error -> make_from_lst(rest, val)
+          end >>> upd
 
           Map.put(s, key, upd)
         else
@@ -512,11 +511,8 @@ defmodule Mlmap do
           case Map.fetch(s, key) do
             {:ok, map} ->
               case supdate_aux(map, rest, val) do
-                :bump ->
-                  :bump
-
-                upd ->
-                  Map.put(s, key, upd)
+                :bump -> :bump
+                upd -> Map.put(s, key, upd)
               end
 
             :error ->
@@ -579,19 +575,16 @@ defmodule Mlmap do
       [] ->
         res = merge(s, val) |> normalize()
 
-        if res == %{} do
-          :undefined
-        else
+        Util.wife :undefined, res != %{} do
           if res == s, do: :bump, else: {res, []}
         end
 
       [key | rest] ->
         casemap s do
-          upd =
-            case Map.fetch(s, key) do
-              {:ok, map} -> smerdate_aux(map, rest, val)
-              :error -> n_smake_from_lst(rest, val)
-            end
+          case Map.fetch(s, key) do
+            {:ok, map} -> smerdate_aux(map, rest, val)
+            :error -> n_smake_from_lst(rest, val)
+          end >>> upd
 
           case upd do
             :undefined ->
@@ -766,32 +759,30 @@ defmodule Mlmap do
     curr = get(curr, lst)
 
     casemapx curr, [] do
-      first =
-        Enum.map(curr, fn {k, v} ->
-          {event, ori, dif} =
-            case Map.fetch(diff, k) do
-              :error ->
-                {:unchanged, v, v}
+      Enum.map(curr, fn {k, v} ->
+        {event, ori, dif} =
+          case Map.fetch(diff, k) do
+            :error ->
+              {:unchanged, v, v}
 
-              {:ok, dif} ->
-                case Map.fetch(orig, k) do
-                  :error -> {:inserted, :undefined, dif}
-                  {:ok, xori} -> {:changed, xori, dif}
-                end
-            end
+            {:ok, dif} ->
+              case Map.fetch(orig, k) do
+                :error -> {:inserted, :undefined, dif}
+                {:ok, xori} -> {:changed, xori, dif}
+              end
+          end
 
-          fnc.(k, event, ori, dif, v)
-        end)
-        |> Enum.filter(fn v -> v != :bump end)
+        fnc.(k, event, ori, dif, v)
+      end)
+      |> Enum.filter(fn v -> v != :bump end) >>> first
 
-      second =
-        diff
-        |> Enum.filter(fn {_k, v} -> v == :undefined end)
-        |> Enum.reduce([], fn {k, _}, acc ->
-          ori = Map.get(orig, k)
-          [fnc.(k, :deleted, ori, :undefined, :undefined) | acc]
-        end)
-        |> Enum.filter(fn v -> v != :bump end)
+      diff
+      |> Enum.filter(fn {_k, v} -> v == :undefined end)
+      |> Enum.reduce([], fn {k, _}, acc ->
+        ori = Map.get(orig, k)
+        [fnc.(k, :deleted, ori, :undefined, :undefined) | acc]
+      end)
+      |> Enum.filter(fn v -> v != :bump end) >>> second
 
       Enum.reverse(second, first)
     end
