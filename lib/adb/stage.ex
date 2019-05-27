@@ -374,6 +374,7 @@ defmodule Stage do
           {%{}, :undefined, %{}, :undefined, %{}, :undefined}
 
         {internal1, ulst, nval} ->
+          nval = Util.wife nval, nval == :bump, do: val
           stage1 = Mlmap.merdate(stage1, ulst, nval)
 
           lst12 = [{map, key} | lst]
