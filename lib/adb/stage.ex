@@ -6,7 +6,7 @@ defmodule Stage do
   @vsn "0.1.0"
 
   require Mlmap
-  # require Logger
+  require Logger
   require Util
   Util.arrow_assignment()
 
@@ -225,14 +225,14 @@ defmodule Stage do
         %{s | internal1: %{}, stage1: :undefined, internal2: %{}, stage2: :undefined, internal12: %{}, stage12: :undefined}
 
       {internal1, lst} ->
-        stage1 = Mlmap.update(s.stage1, lst, val)
+        stage1 = Mlmap.dupdate(s.current1, s.stage1, lst, val)
 
         case lst do
           [map, key | rest] ->
             lst12 = [{map, key} | rest]
             # Itt ennek jonak kell lennie, nem lehet :undefined vagy :bump...
             {internal12, lst12} = Mlmap.supdate(s.internal12, lst12, val)
-            stage12 = Mlmap.update(s.stage12, lst12, val)
+            stage12 = Mlmap.dupdate(s.current12, s.stage12, lst12, val)
 
             if iden != nil do
               lst2 = [key, map | rest]
@@ -245,7 +245,7 @@ defmodule Stage do
                   {%{}, :undefined, internal12, stage12}
 
                 {internal2, lst2} ->
-                  stage2 = Mlmap.update(s.stage2, lst2, val)
+                  stage2 = Mlmap.dupdate(s.current12, s.stage2, lst2, val)
                   {internal2, stage2, internal12, stage12}
               end
             else
@@ -263,6 +263,9 @@ defmodule Stage do
   @spec put(t, [{[any], any, iden}]) :: t
   def put(s, lstlst) do
     # orig -diff-> current -stage-> internal
+    current1 = s.current1
+    current2 = s.current2
+    current12 = s.current12
 
     lstlst
     |> Enum.reduce(
@@ -278,14 +281,14 @@ defmodule Stage do
             {%{}, :undefined, %{}, :undefined, %{}, :undefined}
 
           {internal1, ulst} ->
-            stage1 = Mlmap.update(stage1, ulst, val)
+            stage1 = Mlmap.dupdate(current1, stage1, ulst, val)
 
             case lst do
               [map, key | rest] ->
                 lst12 = [{map, key} | rest]
                 # Itt ennek jonak kell lennie, nem lehet :undefined vagy :bump...
                 {internal12, lst12} = Mlmap.supdate(internal12, lst12, val)
-                stage12 = Mlmap.update(stage12, lst12, val)
+                stage12 = Mlmap.dupdate(current12, stage12, lst12, val)
 
                 if iden != nil do
                   lst2 = [key, map | rest]
@@ -298,7 +301,7 @@ defmodule Stage do
                       {internal1, stage1, %{}, :undefined, internal12, stage12}
 
                     {internal2, lst2} ->
-                      stage2 = Mlmap.update(stage2, lst2, val)
+                      stage2 = Mlmap.dupdate(current2, stage2, lst2, val)
                       {internal1, stage1, internal2, stage2, internal12, stage12}
                   end
                 else

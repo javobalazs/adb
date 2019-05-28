@@ -5,43 +5,164 @@ defmodule Mlmap do
   @moduledoc """
   Tobbszintu map-ek kezelese.
 
-  a = %{}
-  a = ADB.Mlmap.update(a, ["spanning", "folder", "show"], true)
-  a = ADB.Mlmap.update(a, ["spanning", "c1", "folder"], true)
-  a = ADB.Mlmap.update(a, ["spanning", "c2", "folder"], true)
-  a = ADB.Mlmap.update(a, ["spanning", "v11", "c1"], true)
-  a = ADB.Mlmap.update(a, ["spanning", "v12", "c1"], true)
-  # a = ADB.Mlmap.update(a, ["spanning", "v12", "c2"], true)
-  # a = ADB.Mlmap.update(a, ["spanning", "v21", "c2"], true)
-  a = ADB.Mlmap.update(a, ["spanning", "o111", "v11"], true)
-  a = ADB.Mlmap.update(a, ["spanning", "o112", "v11"], true)
-  a = ADB.Mlmap.update(a, ["spanning", "o121", "v12"], true)
-  a = ADB.Mlmap.update(a, ["spanning", "o122", "v12"], true)
-  a = ADB.Mlmap.update(a, ["spanning", "o123", "v12"], true)
-  a = ADB.Mlmap.update(a, ["spanning", "o211", "v21"], true)
-  a = ADB.Mlmap.update(a, ["spanning", "o212", "v21"], true)
-  a = ADB.Mlmap.update(a, ["spanning", "o213", "v21"], true)
-
-  orig = a
-
-  da = %{}
-  # da = ADB.Mlmap.update(da, ["spanning", "v12", "c2"], :undefined)
-  # a = ADB.Mlmap.supdate(a, ["spanning", "v12", "c2"], :undefined)
-
-  da = ADB.Mlmap.update(da, ["spanning", "c2"], :undefined)
-  {a,x} = ADB.Mlmap.supdate(a, ["spanning", "c2"], :undefined)
-  da = ADB.Mlmap.update(da, ["spanning", "v21"], :undefined)
-  {a,x} = ADB.Mlmap.supdate(a, ["spanning", "v21"], :undefined)
-  da = ADB.Mlmap.update(da, ["spanning", "o211"], :undefined)
-  {a,x} = ADB.Mlmap.supdate(a, ["spanning", "o211"], :undefined)
-  da = ADB.Mlmap.update(da, ["spanning", "o212"], :undefined)
-  {a,x} = ADB.Mlmap.supdate(a, ["spanning", "o212"], :undefined)
-  da = ADB.Mlmap.update(da, ["spanning", "o213"], :undefined)
-  {a,x} = ADB.Mlmap.supdate(a, ["spanning", "o213"], :undefined)
-  da = ADB.Mlmap.update(da, ["spanning", "c2", "folder"], :undefined)
-  {a,x} = ADB.Mlmap.supdate(a, ["spanning", "c2", "folder"], :undefined)
-  ADB.Mlmap.filter(da, orig)
-
+  # Letrehozas
+  iex>  a = %{}
+  iex>  ao = %{}
+  iex>  diff = %{}
+  iex>  {a, x} = ADB.Mlmap.supdate(a, ["spanning", "folder", "show"], true)
+  iex>  diff = ADB.Mlmap.dupdate(ao, diff, x, true)
+  iex>  {a, x} = ADB.Mlmap.supdate(a, ["spanning", "c2", "folder"], true)
+  iex>  diff = ADB.Mlmap.dupdate(ao, diff, x, true)
+  iex>  {a, x} = ADB.Mlmap.supdate(a, ["spanning", "v11", "c1"], true)
+  iex>  diff = ADB.Mlmap.dupdate(ao, diff, x, true)
+  iex>  {a, x} = ADB.Mlmap.supdate(a, ["spanning", "v12", "c1"], true)
+  iex>  diff = ADB.Mlmap.dupdate(ao, diff, x, true)
+  iex>  {a, x} = ADB.Mlmap.supdate(a, ["spanning", "v12", "c2"], true)
+  iex>  diff = ADB.Mlmap.dupdate(ao, diff, x, true)
+  iex>  {a, x} = ADB.Mlmap.supdate(a, ["spanning", "v21", "c2"], true)
+  iex>  diff = ADB.Mlmap.dupdate(ao, diff, x, true)
+  iex>  {a, x} = ADB.Mlmap.supdate(a, ["spanning", "o111", "v11"], true)
+  iex>  diff = ADB.Mlmap.dupdate(ao, diff, x, true)
+  iex>  {a, x} = ADB.Mlmap.supdate(a, ["spanning", "o112", "v11"], true)
+  iex>  diff = ADB.Mlmap.dupdate(ao, diff, x, true)
+  iex>  {a, x} = ADB.Mlmap.supdate(a, ["spanning", "o121", "v12"], true)
+  iex>  diff = ADB.Mlmap.dupdate(ao, diff, x, true)
+  iex>  {a, x} = ADB.Mlmap.supdate(a, ["spanning", "o122", "v12"], true)
+  iex>  diff = ADB.Mlmap.dupdate(ao, diff, x, true)
+  iex>  {a, x} = ADB.Mlmap.supdate(a, ["spanning", "o123", "v12"], true)
+  iex>  diff = ADB.Mlmap.dupdate(ao, diff, x, true)
+  iex>  {a, x} = ADB.Mlmap.supdate(a, ["spanning", "o211", "v21"], true)
+  iex>  diff = ADB.Mlmap.dupdate(ao, diff, x, true)
+  iex>  {a, x} = ADB.Mlmap.supdate(a, ["spanning", "o212", "v21"], true)
+  iex>  diff = ADB.Mlmap.dupdate(ao, diff, x, true)
+  iex>  {a, x} = ADB.Mlmap.supdate(a, ["spanning", "o213", "v21"], true)
+  {%{
+     "spanning" => %{
+       "c2" => %{"folder" => true},
+       "folder" => %{"show" => true},
+       "o111" => %{"v11" => true},
+       "o112" => %{"v11" => true},
+       "o121" => %{"v12" => true},
+       "o122" => %{"v12" => true},
+       "o123" => %{"v12" => true},
+       "o211" => %{"v21" => true},
+       "o212" => %{"v21" => true},
+       "o213" => %{"v21" => true},
+       "v11" => %{"c1" => true},
+       "v12" => %{"c1" => true, "c2" => true},
+       "v21" => %{"c2" => true}
+     }
+   }, ["spanning", "o213", "v21"]}
+  iex>  diff = ADB.Mlmap.dupdate(ao, diff, x, true)
+  iex>  diff == a
+  true
+  # Ugyanaz
+  iex>  ao = a
+  iex>  diff = %{}
+  iex>  ADB.Mlmap.supdate(a, ["spanning", "folder", "show"], true)
+  :bump
+  iex>  {a, x} = ADB.Mlmap.supdate(a, ["spanning", "folder", "show", "segg"], true)
+  iex>  diff = ADB.Mlmap.dupdate(ao, diff, x, true)
+  iex>  {a, x} = ADB.Mlmap.supdate(a, ["spanning", "folder", "show", "segg", "fasz"], true)
+  iex>  diff = ADB.Mlmap.dupdate(ao, diff, x, true)
+  iex>  {a, x} = ADB.Mlmap.supdate(a, ["spanning", "c2", "folder", "segg", "fasz"], true)
+  iex>  diff = ADB.Mlmap.dupdate(ao, diff, x, true)
+  iex>  {a, x} = ADB.Mlmap.supdate(a, ["spanning", "folder", "show"], true)
+  iex>  diff = ADB.Mlmap.dupdate(ao, diff, x, true)
+  iex>  {a, x} = ADB.Mlmap.supdate(a, ["spanning", "c2", "folder"], true)
+  iex>  diff = ADB.Mlmap.dupdate(ao, diff, x, true)
+  %{}
+  # TORLESEK
+  iex>  {a, x} = ADB.Mlmap.supdate(a, ["spanning", "v12", "c2"], :undefined)
+  iex>  diff = ADB.Mlmap.dupdate(ao, diff, x, :undefined)
+  iex>  ADB.Mlmap.supdate(a, ["spanning", "v12", "c2"], :undefined)
+  :bump
+  iex>  {a, x} = ADB.Mlmap.supdate(a, ["spanning", "c2"], :undefined)
+  iex>  diff = ADB.Mlmap.dupdate(ao, diff, x, :undefined)
+  iex>  ADB.Mlmap.supdate(a, ["spanning", "c2"], :undefined)
+  :bump
+  iex>  {a,x} = ADB.Mlmap.supdate(a, ["spanning", "v21"], :undefined)
+  iex>  diff = ADB.Mlmap.dupdate(ao, diff, x, :undefined)
+  iex>  {a,x} = ADB.Mlmap.supdate(a, ["spanning", "o211"], :undefined)
+  iex>  diff = ADB.Mlmap.dupdate(ao, diff, x, :undefined)
+  iex>  {a,x} = ADB.Mlmap.supdate(a, ["spanning", "o212"], :undefined)
+  iex>  diff = ADB.Mlmap.dupdate(ao, diff, x, :undefined)
+  iex>  {a,x} = ADB.Mlmap.supdate(a, ["spanning", "o213"], :undefined)
+  iex>  diff = ADB.Mlmap.dupdate(ao, diff, x, :undefined)
+  iex>  ADB.Mlmap.supdate(a, ["spanning", "c2", "folder"], :undefined)
+  :bump
+  iex>  {a,x} = ADB.Mlmap.supdate(a, ["spanning", "v12"], :undefined)
+  {%{
+     "spanning" => %{
+       "folder" => %{"show" => true},
+       "o111" => %{"v11" => true},
+       "o112" => %{"v11" => true},
+       "o121" => %{"v12" => true},
+       "o122" => %{"v12" => true},
+       "o123" => %{"v12" => true},
+       "v11" => %{"c1" => true}
+     }
+   }, ["spanning", "v12"]}
+  iex>  diff = ADB.Mlmap.dupdate(ao, diff, x, :undefined)
+  %{
+    "spanning" => %{
+      "c2" => :undefined,
+      "o211" => :undefined,
+      "o212" => :undefined,
+      "o213" => :undefined,
+      "v12" => :undefined,
+      "v21" => :undefined
+    }
+  }
+  iex>  {a, x} = ADB.Mlmap.supdate(a, ["spanning", "v12", "c3"], true)
+  iex>  diff = ADB.Mlmap.dupdate(ao, diff, x, true)
+  %{
+    "spanning" => %{
+      "c2" => :undefined,
+      "o211" => :undefined,
+      "o212" => :undefined,
+      "o213" => :undefined,
+      "v12" => %{"c1" => :undefined, "c2" => :undefined, "c3" => true},
+      "v21" => :undefined
+    }
+  }
+  iex>  {a, x} = ADB.Mlmap.supdate(a, ["spanning", "v12", "c1"], true)
+  iex>  diff = ADB.Mlmap.dupdate(ao, diff, x, true)
+  %{
+    "spanning" => %{
+      "c2" => :undefined,
+      "o211" => :undefined,
+      "o212" => :undefined,
+      "o213" => :undefined,
+      "v12" => %{"c2" => :undefined, "c3" => true},
+      "v21" => :undefined
+    }
+  }
+  iex>  {a, x} = ADB.Mlmap.supdate(a, ["spanning", "v12", "c3"], :undefined)
+  iex>  diff = ADB.Mlmap.dupdate(ao, diff, x, :undefined)
+  %{
+    "spanning" => %{
+      "c2" => :undefined,
+      "o211" => :undefined,
+      "o212" => :undefined,
+      "o213" => :undefined,
+      "v12" => %{"c2" => :undefined},
+      "v21" => :undefined
+    }
+  }
+  iex> {_a, x} = ADB.Mlmap.supdate(a, ["spanning", "v12", "c1"], :undefined)
+  iex> diff = ADB.Mlmap.dupdate(ao, diff, x, :undefined)
+  iex> diff
+  %{
+    "spanning" => %{
+      "c2" => :undefined,
+      "o211" => :undefined,
+      "o212" => :undefined,
+      "o213" => :undefined,
+      "v12" => :undefined,
+      "v21" => :undefined
+    }
+  }
 
   @vsn `"#{@vsn}"`
   """
@@ -379,62 +500,122 @@ defmodule Mlmap do
   ##              ##     ## ##        ##     ##         ##     ##  ##  ##       ##                    ##
   ######           #######  ##        ########  ####### ########  #### ##       ##                ######
 
-  # defmacro same_check(key, expr) do
-  #   quote do
-  #     case unquote(expr) do
-  #       {:ok, upd} -> {:ok, %{unquote(key) => upd}}
-  #       :same -> :same
-  #       :undefined -> :undefined
-  #     end
-  #   end
-  # end
-  #
-  # defmacro eq_check(orig, val) do
-  #   quote do
-  #     if unquote(orig) == unquote(val), do: :undefined, else: {:ok, unquote(val)}
-  #   end
-  # end
-  #
-  # defmacro undefined_check(var, expr) do
-  #   quote do
-  #     Util.wife(:same, unquote(var) != :undefined, do: {:ok, unquote(expr)})
-  #   end
-  # end
-  #
-  # @doc """
-  # Itt nincs metanyelvi ertelme az `:undefined`-nek, az is csak egy ertek.
-  # """
-  # @spec dupdate_aux(t, t_diff, nonempty_list, any) :: :same | {:ok, t}
-  # @spec dupdate_aux(a, a, [], a) :: :same | {:ok, a} when a: var
-  # @spec dupdate_aux(any, any, [], a) :: {:ok, a} when a: var
-  # def dupdate_aux(orig, diff, lst, val) do
-  #   case lst do
-  #     [] ->
-  #       eq_check(orig, val)
-  #
-  #     [key | rest] ->
-  #       casemap diff do
-  #         case Map.fetch(diff, key) do
-  #           {:ok, map} ->
-  #             same_check(key, dupdate_aux(map, rest, val))
-  #
-  #           :error ->
-  #             casemap orig do
-  #               case Map.fetch(orig, key) do
-  #                 {:ok, map} -> same_check(key, descend(orig, rest, val))
-  #                 :error -> undefined_check(val, Map.put(diff, key, make_from_lst(rest, val)))
-  #               end
-  #             else
-  #               undefined_check(val, Map.put(diff, key, make_from_lst(rest, val)))
-  #             end
-  #         end
-  #       else
-  #         upd = make_from_lst(rest, val)
-  #         %{key => make_from_lst(rest, val)}
-  #       end
-  #   end
-  # end
-  #
+  @doc """
+  Diff-et alkalmaz regebbi diffre, az eredeti fuggvenyeben.
+  """
+  @spec dupdate(t, t_diff, [any], any) :: t_diff
+  def dupdate(orig, diff, lst, val) do
+    case val do
+      :undefined -> dupdate_aux_u(orig, diff, lst)
+      _ -> dupdate_aux_val(orig, diff, lst, val)
+    end
+    |> case do
+      :bump -> %{}
+      x -> x
+    end
+  end
+
+  @spec dupdate_aux_val(t_node, t_node_diff, [any], any) :: t_node_diff
+  def dupdate_aux_val(orig, diff, lst, val) do
+    case lst do
+      [] ->
+        if orig == val, do: :bump, else: val
+
+      [key | rest] ->
+        casemap diff do
+          case Map.fetch(diff, key) do
+            {:ok, map} ->
+              # A diffben benne van a kulcs!
+              casemap orig do
+                case Map.fetch(orig, key) do
+                  {:ok, omap} ->
+                    case dupdate_aux_val(omap, map, rest, val) do
+                      :bump ->
+                        diff = Map.delete(diff, key)
+                        if diff == %{}, do: :bump, else: diff
+
+                      x ->
+                        Map.put(diff, key, x)
+                    end
+
+                  :error ->
+                    # Mivel az origban nem volt benne, a diffnek ez az aga nem tartalmazhat torlest,
+                    # es mivel effektiv, ugyanolyan erteket sem, azaz az egyszeru update is jo.
+                    Map.put(diff, key, update(map, rest, val))
+                end
+              else
+                # Egyszeru feluliras.
+                Map.put(diff, key, update(map, rest, val))
+              end
+
+            :error ->
+              # A diffben nincs benne.
+              # Mivel ez effektiv valtoztatas, ez az orighoz kepest is valtoztas kell legyen,
+              # kulohben nem letezne.
+              Map.put(diff, key, make_from_lst(rest, val))
+          end
+        else
+          # Diff ertek vagy torles.
+          # Itt toroltunk vagy felulirtunk egy erteket, vagy egy map-et.
+          casemap orig do
+            # Map volt, ezert azt ki kell robbantani.
+            omap = Enum.map(orig, fn {k, _} -> {k, :undefined} end) |> Map.new()
+
+            case Mlmap.get(orig, lst, :undefined) do
+              :undefined ->
+                # Nem volt benne az eredetiben.
+                Map.put(omap, key, make_from_lst(rest, val))
+
+              x ->
+                # Ha ez ugyanaz, mint az eredeti, akkor egyszeruen torolni kell az agat,
+                # kulonben beilleszteni.
+                if val == x, do: Map.delete(omap, key), else: Map.put(omap, key, make_from_lst(rest, val))
+            end
+          else
+            # Erteket irtunk felul vagy toroltunk, ezert csak csere a map-ra.
+            %{key => make_from_lst(rest, val)}
+          end
+        end
+    end
+  end
+
+  @spec dupdate_aux_u(t_node, t_node_diff, [any]) :: t_node_diff | :bump
+  def dupdate_aux_u(orig, diff, lst) do
+    case lst do
+      [] ->
+        :undefined
+
+      [key | rest] ->
+        # Itt diff biztosan map, mivel a valtoztatas minimalis es effektiv,
+        # ezert ha itt ertek lenne (vagy akar undefined), akkor az uj verzioban
+        # nem mehetne tovabb a lista.
+        case Map.fetch(diff, key) do
+          {:ok, map} ->
+            # Benne van. Itt meg kell nezni, hogy az eredetiben mi volt a helyzet,
+            # mert ha nincs, akkor le kell vagni az agat.
+            casemap orig do
+              case Map.fetch(orig, key) do
+                {:ok, omap} ->
+                  # Az eredetiben is benne volt.
+                  Map.put(diff, key, dupdate_aux_u(omap, map, rest))
+
+                :error ->
+                  # Az eredetiben nem volt benne ez az ag, ezert le kell vagni.
+                  Map.delete(diff, key)
+              end
+            else
+              # Az eredetiben itt ertek volt.
+              # A valtoztatas effektiv, ezert magaban a diffben kell valtoztatni.
+              Map.put(diff, key, Mlmap.update(map, rest, :undefined))
+            end
+
+          :error ->
+            # Nincs benne, ezert benne kellett legyen az eredetiben.
+            Map.put(diff, key, make_from_lst(rest, :undefined))
+        end
+    end
+  end
+
   # def descend(orig, lst, val) do
   #   case lst do
   #     [] ->
@@ -482,7 +663,7 @@ defmodule Mlmap do
   #     [k | rest] -> %{k => make_from_lst(rest, val)}
   #   end
   # end
-  #
+
   ######          ##     ## ########  ########          ##     ## ######## ########    ###             ######
   ##              ##     ## ##     ## ##     ##         ###   ### ##          ##      ## ##                ##
   ##              ##     ## ##     ## ##     ##         #### #### ##          ##     ##   ##               ##
