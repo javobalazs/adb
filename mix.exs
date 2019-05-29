@@ -1,6 +1,6 @@
 defmodule Adb.MixProject do
   use Mix.Project
-  @vsn "0.2.6"
+  @vsn "0.2.7"
 
   def project do
     [
