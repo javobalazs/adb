@@ -96,10 +96,10 @@ defmodule Util do
   Egyszeru szintaktikai elem a Haskell `do`-jelolesere.
 
   Hasznalata:
-  ```
+  ```elixir
   wmonad do
     utasitasok
-    pl. wo(z) = kif
+    wo(z) = kif
   end
   ```
 
@@ -120,6 +120,40 @@ defmodule Util do
     end
 
     # defmacro wmonad
+  end
+
+  @doc """
+  Kicsit bovitett szintaktikai elem a Haskell `do`-jelolesere.
+
+  Hasznalata:
+  ```elixir
+  wmonad do
+    utasitasok
+    wo(z) = kif
+  catch
+    {:error, x} -> errormsg(x)
+    {:ok, x} -> tovabbi_muveletek
+  end
+  ```
+
+  Megjegyzesek:
+  - Ha match-hiba van, visszaadja a hibazo cuccot.
+  """
+  defmacro wmonad(do: clause, catch: branches) do
+    quote do
+      try do
+        unquote(clause)
+      rescue
+        err in [MatchError] ->
+          %MatchError{term: t} = err
+          t
+      catch
+        :badmatch, x -> x
+      end |>
+      case do
+        unquote(branches)
+      end
+    end
   end
 
   @doc """
