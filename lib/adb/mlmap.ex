@@ -87,8 +87,36 @@ defmodule Mlmap do
   iex>  diff = ADB.Mlmap.dupdate(ao, diff, x, :undefined)
   iex>  {a,x} = ADB.Mlmap.supdate(a, ["spanning", "o212"], :undefined)
   iex>  diff = ADB.Mlmap.dupdate(ao, diff, x, :undefined)
+  iex>  ddiff = ADB.Mlmap.dmerge(%{}, ao, diff)
+  %{
+    "spanning" => %{
+      "folder" => %{"show" => true},
+      "o111" => %{"v11" => true},
+      "o112" => %{"v11" => true},
+      "o121" => %{"v12" => true},
+      "o122" => %{"v12" => true},
+      "o123" => %{"v12" => true},
+      "o213" => %{"v21" => true},
+      "v11" => %{"c1" => true},
+      "v12" => %{"c1" => true}
+    }
+  }
+  iex> ddiff == a
+  true
+  iex> a2 = a; diff2 = diff; ddiff = %{}
+  iex> diff2
+  %{
+    "spanning" => %{
+      "c2" => :undefined,
+      "o211" => :undefined,
+      "o212" => :undefined,
+      "v12" => %{"c2" => :undefined},
+      "v21" => :undefined
+    }
+  }
   iex>  {a,x} = ADB.Mlmap.supdate(a, ["spanning", "o213"], :undefined)
   iex>  diff = ADB.Mlmap.dupdate(ao, diff, x, :undefined)
+  iex>  ddiff = ADB.Mlmap.dmerge(a2, ddiff, ADB.Mlmap.make_from_lst(x, :undefined))
   iex>  ADB.Mlmap.supdate(a, ["spanning", "c2", "folder"], :undefined)
   :bump
   iex>  {a,x} = ADB.Mlmap.supdate(a, ["spanning", "v12"], :undefined)
@@ -114,6 +142,7 @@ defmodule Mlmap do
       "v21" => :undefined
     }
   }
+  iex>  ddiff = ADB.Mlmap.dmerge(a2, ddiff, ADB.Mlmap.make_from_lst(x, :undefined))
   iex>  {a, x} = ADB.Mlmap.supdate(a, ["spanning", "v12", "c3"], true)
   iex>  diff = ADB.Mlmap.dupdate(ao, diff, x, true)
   %{
@@ -126,6 +155,7 @@ defmodule Mlmap do
       "v21" => :undefined
     }
   }
+  iex>  ddiff = ADB.Mlmap.dmerge(a2, ddiff, ADB.Mlmap.make_from_lst(x, true))
   iex>  {a, x} = ADB.Mlmap.supdate(a, ["spanning", "v12", "c1"], true)
   iex>  diff = ADB.Mlmap.dupdate(ao, diff, x, true)
   %{
@@ -138,6 +168,7 @@ defmodule Mlmap do
       "v21" => :undefined
     }
   }
+  iex>  ddiff = ADB.Mlmap.dmerge(a2, ddiff, ADB.Mlmap.make_from_lst(x, true))
   iex>  {a, x} = ADB.Mlmap.supdate(a, ["spanning", "v12", "c3"], :undefined)
   iex>  diff = ADB.Mlmap.dupdate(ao, diff, x, :undefined)
   %{
@@ -150,8 +181,10 @@ defmodule Mlmap do
       "v21" => :undefined
     }
   }
-  iex> {_a, x} = ADB.Mlmap.supdate(a, ["spanning", "v12", "c1"], :undefined)
+  iex>  ddiff = ADB.Mlmap.dmerge(a2, ddiff, ADB.Mlmap.make_from_lst(x, :undefined))
+  iex> {a, x} = ADB.Mlmap.supdate(a, ["spanning", "v12", "c1"], :undefined)
   iex> diff = ADB.Mlmap.dupdate(ao, diff, x, :undefined)
+  iex>  ddiff = ADB.Mlmap.dmerge(a2, ddiff, ADB.Mlmap.make_from_lst(x, :undefined))
   iex> diff
   %{
     "spanning" => %{
@@ -163,6 +196,44 @@ defmodule Mlmap do
       "v21" => :undefined
     }
   }
+  iex> {ao, diff2, a2, ddiff, a}
+  {%{
+   "spanning" => %{
+     "c2" => %{"folder" => true}, "folder" => %{"show" => true}, "o111" => %{"v11" => true}, "o112" => %{"v11" => true},
+     "o121" => %{"v12" => true}, "o122" => %{"v12" => true}, "o123" => %{"v12" => true},
+     "o211" => %{"v21" => true}, "o212" => %{"v21" => true}, "o213" => %{"v21" => true},
+     "v11" => %{"c1" => true}, "v12" => %{"c1" => true, "c2" => true}, "v21" => %{"c2" => true}
+   }
+  },
+  %{"spanning" => %{"c2" => :undefined, "o211" => :undefined, "o212" => :undefined, "v12" => %{"c2" => :undefined}, "v21" => :undefined}},
+  %{
+   "spanning" => %{
+     "folder" => %{"show" => true}, "o111" => %{"v11" => true}, "o112" => %{"v11" => true}, "o121" => %{"v12" => true},
+     "o122" => %{"v12" => true}, "o123" => %{"v12" => true}, "o213" => %{"v21" => true}, "v11" => %{"c1" => true}, "v12" => %{"c1" => true}
+   }
+  },
+  %{"spanning" => %{"o213" => :undefined, "v12" => :undefined}},
+  %{
+   "spanning" => %{
+     "folder" => %{"show" => true}, "o111" => %{"v11" => true}, "o112" => %{"v11" => true},
+     "o121" => %{"v12" => true}, "o122" => %{"v12" => true}, "o123" => %{"v12" => true}, "v11" => %{"c1" => true}
+   }
+  }}
+  iex>  xdiff = ADB.Mlmap.dmerge(ao, diff2, ddiff)
+  %{
+    "spanning" => %{
+      "c2" => :undefined,
+      "o211" => :undefined,
+      "o212" => :undefined,
+      "o213" => :undefined,
+      "v12" => :undefined,
+      "v21" => :undefined
+    }
+  }
+  iex>  xdiff == diff
+  true
+
+
 
   @vsn `"#{@vsn}"`
   """
@@ -177,15 +248,22 @@ defmodule Mlmap do
   @type t :: Map.t()
 
   @typedoc """
+  Olyan map, ami `:undefined`-et is tartalmaz, ami itt azt jelenti, hogy torles (metanyelvi ertek).
+  Azaz ez a deltak tipusa. De ez nem fejezheto ki rendesen a tipusrendszerben.
+  """
+  @type t_undefined :: t
+
+  @typedoc """
   Ez elvileg egy map of maps, de lehet `:undefined` is. Ez a toplevel.
   """
-  @type t_diff :: t | :undefined
+  @type t_diff :: t_undefined | :undefined
 
   @typedoc """
   A fanak az aga barmi lehet, ami ertek, de nem `:undefined`.
   Ez persze inkabb csak egy cimke.
   """
   @type t_node :: any
+  @type t_node_undefined :: t_node
 
   @typedoc """
   A diffnek az aga barmi lehet, ami ertek, ideertve `:undefined`.
@@ -365,6 +443,35 @@ defmodule Mlmap do
     end
   end
 
+  # defmacro m_get_aux(s, lst, defa, unroll) do
+  #   un = Macro.expand(unroll, __CALLER__)
+  #   if un == 0 do
+  #     quote do
+  #       f_get_aux(unquote(s), unquote(lst), unquote(defa))
+  #     end
+  #   else
+  #     un = un - 1
+  #     quote location: :keep, bind_quoted: [lst: lst, s: s, defa: defa, un: un] do
+  #       case lst do
+  #         [] ->
+  #           s
+  #
+  #         [key | rest] ->
+  #           case Map.fetch(s, key) do
+  #             {:ok, val} -> m_get_aux(val, rest, defa, un)
+  #             :error -> defa
+  #           end
+  #       end
+  #     end
+  #   end
+  # end
+  #
+  # def f_get_aux(s, lst, defa), do: m_get_aux(s, lst, defa, 1)
+  #
+  # @unroll 5
+  #
+  # def get_aux(s, lst, defa), do: m_get_aux(s, lst, defa, @unroll)
+
   # @compile {:inline, get_aux: 2, get_aux: 3}
   @spec get_aux(a, [], any) :: a when a: var
   @spec get_aux(t, nonempty_list(any), any) :: any
@@ -439,10 +546,27 @@ defmodule Mlmap do
   @doc """
   Itt nincs metanyelvi ertelme az `:undefined`-nek, az is csak egy ertek.
   """
-  # @compile {:inline, update: 3}
-  @spec update(t, nonempty_list, any) :: t
-  @spec update(any, [], a) :: a when a: var
+  @spec update(t, nonempty_list(any), any) :: t
+  @spec update(t, [], a) :: a when a: var
   def update(s, lst, val) do
+    case lst do
+      [] ->
+        val
+
+      [key | rest] ->
+        case Map.fetch(s, key) do
+          {:ok, map} -> update_aux(map, rest, val)
+          :error -> make_from_lst(rest, val)
+        end >>> upd
+
+        Map.put(s, key, upd)
+    end
+  end
+
+  # @compile {:inline, update: 3}
+  @spec update_aux(any, nonempty_list(any), any) :: t
+  @spec update_aux(any, [], a) :: a when a: var
+  def update_aux(s, lst, val) do
     case lst do
       [] ->
         val
@@ -450,7 +574,7 @@ defmodule Mlmap do
       [key | rest] ->
         casemap s do
           case Map.fetch(s, key) do
-            {:ok, map} -> update(map, rest, val)
+            {:ok, map} -> update_aux(map, rest, val)
             :error -> make_from_lst(rest, val)
           end >>> upd
 
@@ -506,16 +630,18 @@ defmodule Mlmap do
   @spec dupdate(t, t_diff, [any], any) :: t_diff
   def dupdate(orig, diff, lst, val) do
     case val do
-      :undefined -> dupdate_aux_u(orig, diff, lst)
-      _ -> dupdate_aux_val(orig, diff, lst, val)
-    end
-    |> case do
-      :bump -> %{}
-      x -> x
+      :undefined ->
+        dupdate_aux_u(orig, diff, lst)
+
+      _ ->
+        case dupdate_aux_val(orig, diff, lst, val) do
+          :bump -> %{}
+          x -> x
+        end
     end
   end
 
-  @spec dupdate_aux_val(t_node, t_node_diff, [any], any) :: t_node_diff
+  @spec dupdate_aux_val(t_node, t_node_diff, [any], any) :: t_node_diff | :bump
   def dupdate_aux_val(orig, diff, lst, val) do
     case lst do
       [] ->
@@ -541,11 +667,11 @@ defmodule Mlmap do
                   :error ->
                     # Mivel az origban nem volt benne, a diffnek ez az aga nem tartalmazhat torlest,
                     # es mivel effektiv, ugyanolyan erteket sem, azaz az egyszeru update is jo.
-                    Map.put(diff, key, update(map, rest, val))
+                    Map.put(diff, key, update_aux(map, rest, val))
                 end
               else
                 # Egyszeru feluliras.
-                Map.put(diff, key, update(map, rest, val))
+                Map.put(diff, key, update_aux(map, rest, val))
               end
 
             :error ->
@@ -579,7 +705,7 @@ defmodule Mlmap do
     end
   end
 
-  @spec dupdate_aux_u(t_node, t_node_diff, [any]) :: t_node_diff | :bump
+  @spec dupdate_aux_u(t_node, t_diff, [any]) :: t_diff | :bump
   def dupdate_aux_u(orig, diff, lst) do
     case lst do
       [] ->
@@ -606,7 +732,7 @@ defmodule Mlmap do
             else
               # Az eredetiben itt ertek volt.
               # A valtoztatas effektiv, ezert magaban a diffben kell valtoztatni.
-              Map.put(diff, key, Mlmap.update(map, rest, :undefined))
+              Map.put(diff, key, Mlmap.update_aux(map, rest, :undefined))
             end
 
           :error ->
@@ -616,120 +742,227 @@ defmodule Mlmap do
     end
   end
 
-  # @spec dmerge_aux(t_node, t_node_diff, t_node_diff) :: :undefined | :bump | t_node_diff
-  # def dmerge_aux(orig, odiff, diff) do
-  #   ucasemap diff do
-  #     # Map
-  #     casemap(odiff) do
-  #     else
-  #       # odiff ertek, es biztosan elter, tehat a kerdes legfeljebb az, hogy mi volt orig itt.
-  #       casemap orig do
-  #         Enum.reduce(diff, {diff, false}, fn {k,v}, {diff, chg} ->
-  #           case Map.fetch(orig, k) do
-  #             {:ok, ov} ->
-  #
-  #             :error ->
-  #               # Nem volt benne, nem kell vele csinalni semmit, diff ervenyes marad.
-  #               {diff, chg}
-  #           end
-  #         end)
-  #       else
-  #         # Ertek volt, biztosan cserelheto. Itt egeszen biztosan nincs :undefined diff-ben, mivel effektiv es minimalis.
-  #         diff
-  #       end
-  #     end
-  #   else
-  #     # Ertek
-  #     # Itt odiff nem lehet egyenlo diff-fel, mivel az effektiv.
-  #     # A kerdes az, hogy orig egyenlo-e.
-  #     if orig == diff, do: :bump, else: diff
-  #   catch
-  #     # :undefined
-  #     # Itt odiff nem lehet :undefined, mivel diff effektiv.
-  #     # Viszont ezen a ponton orig letezik, tehat torolni kell.
-  #     :undefined
-  #   end
-  # end
-  #
-  # @spec dsmerge_aux(t_node, t_node_diff) :: :bump | :bump2 | t_node_diff
-  # def dsmerge_aux(s, diff) do
-  #   ucasemap diff do
-  #     # Map-csere
-  #     casemap s do
-  #       # Map -> map
-  #       Enum.reduce(diff, {false, diff, false}, fn {k, v}, {schg, diff, dchg} ->
-  #         case Map.fetch(s, k) do
-  #           {:ok, v2} ->
-  #             dsmerge_aux(v2, v)
-  #             |> case do
-  #               :undefined -> {true, Map.delete(diff, k), true}
-  #               :bump2 -> {schg, Map.delete(diff, k), true}
-  #               :bump -> {true, diff, dchg}
-  #               dd -> {true, Map.put(diff, k, dd), true}
-  #             end
-  #
-  #           :error ->
-  #             ucasemap v do
-  #               case snormalize(v) do
-  #                 :undefined -> {schg, Map.delete(diff, k), true}
-  #                 :bump -> {true, diff, dchg}
-  #                 nv -> {true, Map.put(diff, k, nv), true}
-  #               end
-  #             else
-  #               {true, diff, dchg}
-  #             catch
-  #               {schg, Map.delete(diff, k), true}
-  #             end
-  #         end
-  #       end) >>> {schg, diff, dchg}
-  #
-  #       # Map -> Map eredmenye
-  #       Util.wife :bump2, schg do
-  #         Util.wife :undefined, Map.size(s) != 0 do
-  #           Util.wife :bump2, Map.size(diff) != 0 do
-  #             {if(dchg, do: diff, else: :bump)}
-  #           end
-  #         end
-  #       end
-  #     else
-  #       # Ertek -> map
-  #       snormalize(diff)
-  #     end
-  #   else
-  #     # Ertek-csere
-  #     casemap s do
-  #       # Map -> ertek
-  #       :bump
-  #     else
-  #       # Ertek -> ertek
-  #       if diff == s, do: :bump2, else: :bump
-  #     end
-  #   catch
-  #     :bump
-  #
-  #     # casemap diff
-  #   end
-  #
-  #   # def smerge_aux
-  # end
+  @spec dmerge_mmm(t, t_undefined, t_undefined) :: t_undefined
+  def dmerge_mmm(orig, odiff, diff) do
+    Enum.reduce(diff, odiff, fn {k, val}, odiff ->
+      case Map.fetch(odiff, k) do
+        {:ok, v} ->
+          case Map.fetch(orig, k) do
+            {:ok, ov} ->
+              dmerge_aux(ov, v, val)
 
-  # def descend(orig, lst, val) do
-  #   case lst do
-  #     [] ->
-  #       eq_check(orig, val)
-  #
-  #     [key | rest] ->
-  #       casemap orig do
-  #         case Map.fetch(orig, key) do
-  #           {:ok, map} -> same_check(key, descend(map, rest, val))
-  #           :error -> undefined_check(val, %{key => make_from_lst(rest, val)})
-  #         end
-  #       else
-  #         undefined_check(val, %{key => make_from_lst(rest, val)})
-  #       end
-  #   end
-  # end
-  #
+            :error ->
+              # Eredetiben nem volt benne, es effektiv is,
+              casemap val do
+                casemap v do
+                  # Merge
+                  dmerge_diffdiff_aux(v, val)
+                else
+                  # Csere
+                  val
+                end
+              else
+                # Csere
+                val
+              end
+          end
+
+        :error ->
+          case Map.fetch(orig, k) do
+            {:ok, ov} ->
+              case dmerge_check_aux(ov, val) do
+                :bump -> val
+                # Ez elvileg nem lehet :undefined...
+                dd -> dd
+              end
+
+            :error ->
+              val
+          end
+      end >>> to_put
+
+      Map.put(odiff, k, to_put)
+    end)
+  end
+
+  @doc """
+  Legfelso szint, ahol orig biztosan map, es diffek vagy map-ok, vagy legfeljebb `:undefined`.
+  """
+  @spec dmerge(t, t_diff, t_diff) :: t_diff
+  def dmerge(orig, odiff, diff) do
+    casemap diff do
+      # Map
+      casemap(odiff) do
+        # Map -> Map
+        # (map) -> map -> map
+        dmerge_mmm(orig, odiff, diff)
+      else
+        # Ertek -> map
+        # odiff ertek, es biztosan elter, tehat a kerdes legfeljebb az, hogy mi volt orig itt.
+        # (Map) -> ertek -> map
+        # Itt egy erteket cserelunk vissza egy olyan helyen, ahol eredetileg map volt.
+        # Magyaran diff-ben nem lehet mar :undefined, viszont egyes elemei (vagy akar az egesz)
+        # megegyezhet orig-gal, azaz ossze kell vetni vele teljesen.
+        case dmerge_check(orig, diff) do
+          :bump -> diff
+          :undefined -> :undefined
+          dd -> dd
+        end
+      end
+    else
+      # Ertek == :undefined
+      # Itt odiff nem lehet :undefined, mivel diff effektiv.
+      # Viszont ezen a ponton orig letezik, tehat torolni kell.
+      :undefined
+    end
+  end
+
+  @spec dmerge_aux(t_node, t_node_diff, t_node_diff) :: t_node_diff
+  def dmerge_aux(orig, odiff, diff) do
+    ucasemap diff do
+      # Map
+      casemap(odiff) do
+        # Map -> Map
+        casemap orig do
+          # (map) -> map -> map
+          dmerge_mmm(orig, odiff, diff)
+        else
+          # {ertek} -> map -> map
+          # Mivel itt orig ertek, nem szamit. Es mivel diff effektiv, ezert itt ossze kell mergelni odiffel.
+          dmerge_diffdiff(odiff, diff)
+        end
+      else
+        # Ertek -> map
+        # odiff ertek, es biztosan elter, tehat a kerdes legfeljebb az, hogy mi volt orig itt.
+        casemap orig do
+          # (Map) -> ertek -> map
+          # Itt egy erteket cserelunk vissza egy olyan helyen, ahol eredetileg map volt.
+          # Magyaran diff-ben nem lehet mar :undefined, viszont egyes elemei (vagy akar az egesz)
+          # megegyezhet orig-gal, azaz ossze kell vetni vele teljesen.
+          case dmerge_check(orig, diff) do
+            :bump -> diff
+            :undefined -> :undefined
+            dd -> dd
+          end
+        else
+          # (Ertek) -> ertek -> map
+          # Ertek volt mindket eredeti, biztosan cserelheto map-ra.
+          # Itt egeszen biztosan nincs :undefined diff-ben, mivel effektiv es minimalis.
+          diff
+        end
+      end
+    else
+      # Ertek
+      # Itt odiff nem lehet egyenlo diff-fel, mivel az effektiv.
+      # A kerdes az, hogy orig egyenlo-e.
+      # Ha igen, akkor odiffnak ezt az agat torolni kell, kulonben felulirni.
+      if orig == diff, do: :undefined, else: diff
+    catch
+      # :undefined
+      # Itt odiff nem lehet :undefined, mivel diff effektiv.
+      # Viszont ezen a ponton orig letezik, tehat torolni kell.
+      :undefined
+    end
+  end
+
+  @spec dmerge_diffdiff(t_undefined, t_undefined) :: t_diff
+  def dmerge_diffdiff(odiff, diff) do
+    Enum.reduce(diff, odiff, fn {k, val}, odiff ->
+      case Map.fetch(odiff, k) do
+        {:ok, v} ->
+          # Eredetiben nem volt benne, es effektiv is,
+          ucasemap val do
+            casemap v do
+              # Merge
+              case dmerge_diffdiff_aux(v, val) do
+                :undefined -> Map.delete(odiff, k)
+                dd -> Map.put(odiff, k, dd)
+              end
+            else
+              # Csere
+              Map.put(odiff, k, val)
+            end
+          else
+            # Csere
+            Map.put(odiff, k, val)
+          catch
+            # Torles
+            Map.delete(odiff, k)
+          end
+
+        :error ->
+          # Az odiff-ben nem volt benne, de effektiv, es nem lehet torles, tehat insert
+          Map.put(odiff, k, val)
+      end
+    end) >>> odiff
+
+    if map_size(odiff) == 0, do: :undefined, else: odiff
+  end
+
+  @spec dmerge_diffdiff_aux(t_node_diff, t_node_diff) :: t_node_diff
+  def dmerge_diffdiff_aux(odiff, diff) do
+    casemap diff do
+      # Map
+      casemap(odiff) do
+        # Map -> Map
+        # {ertek} -> map -> map
+        # Mivel itt orig ertek, nem szamit. Es mivel diff effektiv, ezert itt ossze kell mergelni odiffel.
+        dmerge_diffdiff(odiff, diff)
+      else
+        # Ertek -> map
+        # odiff ertek, es biztosan elter.
+        diff
+      end
+    else
+      # Ertek
+      # Itt odiff nem lehet egyenlo diff-fel, mivel az effektiv.
+      diff
+    end
+  end
+
+  @spec dmerge_check(t, t_undefined) :: :bump | t_diff
+  def dmerge_check(orig, diff) do
+    Enum.reduce(diff, {diff, false}, fn {k, val}, {diff, chg} ->
+      case Map.fetch(orig, k) do
+        {:ok, v} ->
+          case dmerge_check_aux(v, val) do
+            :undefined -> {Map.delete(diff, k), true}
+            :bump -> {diff, chg}
+            dd -> {Map.put(diff, k, dd), true}
+          end
+
+        :error ->
+          # Itt akarmi van diff-ben, nekunk az jo, es idevalo.
+          {diff, chg}
+      end
+    end) >>> {dd, chg}
+
+    if chg, do: if(Map.size(dd) == 0, do: :undefined, else: dd), else: :bump
+  end
+
+  @spec dmerge_check_aux(t_node, t_node_diff) :: :bump | t_node_diff
+  def dmerge_check_aux(orig, diff) do
+    casemap diff do
+      # Map
+      casemap orig do
+        # Map -> map
+        dmerge_check(orig, diff)
+      else
+        # ertek -> map, biztosan effektiv
+        :bump
+      end
+    else
+      # Ertek
+      casemap orig do
+        # Map -> ertek, biztosan effektiv
+        :bump
+      else
+        # ertek -> ertek
+        if diff == orig, do: :undefined, else: :bump
+      end
+    end
+  end
+
   # @spec dmerdate(t, [any], any) :: t
   # def dmerdate(s, lst, val) do
   #   case lst do
@@ -775,7 +1008,7 @@ defmodule Mlmap do
   Egy diff alkalmazasa utani allapot, kiszuri a felesleges dolgokat.
   """
   # @compile {:inline, normalize: 1}
-  @spec snormalize(t_node_diff) :: :bump | :undefined | any
+  @spec snormalize(t_diff) :: :bump | t_diff
   def snormalize(s) do
     case s do
       %{} when map_size(s) == 0 ->
@@ -821,19 +1054,29 @@ defmodule Mlmap do
     end
   end
 
-  # @doc """
-  # Toplevel, ahol legalabb `s` map.
-  # """
-  # @spec smerge(t, t_diff) :: {changer, changer}
-  # def smerge(s, diff) do
-  #   {s, diff} = smerge_aux(s, diff)
-  #   s = if(s == :undefined, do: %{}, else: s)
-  #   {s, diff}
-  # end
+  @doc """
+  Toplevel, ahol legalabb `s` map, es `diff` legfeljebb `:undefined`.
+
+  Visszajon:
+  - `:bump`, akkor `diff == %{}`.
+  - `:undefined`, akkor `diff == :undefined`.
+  - `{s, diff}`, akkor `s` transzformalt, `diff` optimalizalt.
+  """
+  @spec smerge(t, t_diff) :: :bump | {t | :undefined, t_diff | :bump}
+  def smerge(s, diff) do
+    casemap diff do
+      # Map -> map
+      smerge_aux_mapmap(s, diff)
+    else
+      # Map -> :undefined
+      {:undefined, :bump}
+    end
+  end
 
   @doc """
-  Ket map merge, ahol a masodik egy diff.
-  Ha visszajon
+  Merge, ahol a masodik egy diff. Semmilyen megkotes nincs ezen kivul a parameterekre.
+
+  Visszajon:
   - `:bump`, akkor `diff == %{}`.
   - `:undefined`, akkor `diff == :undefined`.
   - `{s, diff}`, akkor `s` transzformalt, `diff` optimalizalt.
@@ -841,85 +1084,306 @@ defmodule Mlmap do
   # @compile {:inline, smerge_aux: 2}
   @spec smerge_aux(t_node, t_node_diff) :: :bump | {t_node | :undefined, t_node_diff | :bump}
   def smerge_aux(s, diff) do
-    ucasemap diff do
+    casemap s do
       # Map-csere
-      casemap s do
-        # Map -> map
-        Enum.reduce(diff, {s, false, diff, false}, fn {k, v}, {s, schg, diff, dchg} ->
-          case Map.fetch(s, k) do
-            {:ok, v2} ->
-              smerge_aux(v2, v)
-              |> case do
-                :bump ->
-                  {s, schg, Map.delete(diff, k), true}
+      smerge_aux_map(s, diff)
+    else
+      # Ertek-csere
+      smerge_aux_val(s, diff)
+    end
+  end
 
-                {ss, dd} ->
-                  s = if(ss == :undefined, do: Map.delete(s, k), else: Map.put(s, k, ss))
+  @doc """
+  Mindket parameter biztosan map (egyebkent ez a tipikus eset).
+  """
+  @spec smerge_aux_mapmap(t, t_undefined) :: :bump | {t | :undefined, t_diff | :bump}
+  def smerge_aux_mapmap(s, diff) do
+    Enum.reduce(diff, {s, false, diff, false}, fn {k, v}, {s, schg, diff, dchg} ->
+      case Map.fetch(s, k) do
+        {:ok, v2} ->
+          case smerge_aux(v2, v) do
+            :bump ->
+              {s, schg, Map.delete(diff, k), true}
 
-                  case dd do
-                    :bump -> {s, true, diff, dchg}
-                    _ -> {s, true, Map.put(diff, k, :undefined), true}
-                  end
+            {ss, dd} ->
+              s = if(ss == :undefined, do: Map.delete(s, k), else: Map.put(s, k, ss))
+
+              case dd do
+                :bump -> {s, true, diff, dchg}
+                _ -> {s, true, Map.put(diff, k, :undefined), true}
+              end
+          end
+
+        :error ->
+          ucasemap v do
+            case snormalize(v) do
+              :undefined -> {s, schg, Map.delete(diff, k), true}
+              :bump -> {Map.put(s, k, v), true, diff, dchg}
+              nv -> {Map.put(s, k, nv), true, Map.put(diff, k, nv), true}
+            end
+          else
+            {Map.put(s, k, v), true, diff, dchg}
+          catch
+            {s, schg, Map.delete(diff, k), true}
+          end
+      end
+    end) >>> {s, schg, diff, dchg}
+
+    # Map -> Map eredmenye
+    Util.wife :bump, schg do
+      Util.wife {:undefined, :undefined}, Map.size(s) != 0 do
+        Util.wife :bump, Map.size(diff) != 0 do
+          {s, if(dchg, do: diff, else: :bump)}
+        end
+      end
+    end
+  end
+
+  @doc """
+  Itt `s` biztosan nem map, de ezt a tipusrendszer nem tudja kifejezni.
+  """
+  @spec smerge_aux_val(t_node, t_node_diff) :: :bump | {t_node | :undefined, t_node_diff | :bump}
+  def smerge_aux_val(s, diff) do
+    ucasemap diff do
+      # Ertek -> map
+      case snormalize(diff) do
+        :undefined -> {:undefined, :undefined}
+        :bump -> {diff, :bump}
+        ndiff -> {ndiff, ndiff}
+      end
+    else
+      # Ertek -> ertek
+      if diff == s, do: :bump, else: {diff, :bump}
+    catch
+      {:undefined, :bump}
+    end
+  end
+
+  @doc """
+  Itt `s` map, `diff` pedig barmi lehet.
+  Egyebkent lenyegeben ugyanaz a kod, mint `smerge`,
+  de a tisztasag kedveert kiemeltuk kulon.
+  """
+  @spec smerge_aux_map(t, t_node_diff) :: :bump | {t_node | :undefined, t_node_diff | :bump}
+  def smerge_aux_map(s, diff) do
+    casemap diff do
+      # Map -> map
+      smerge_aux_mapmap(s, diff)
+    else
+      # Map -> ertek
+      {diff, :bump}
+    end
+  end
+
+  @doc """
+  Top-level, ahol a parameterek "jok".
+  """
+  @spec smerdate(t, [any], t_diff) :: :bump | {t | :undefined, [any], t_diff | :bump}
+  def smerdate(s, lst, val) do
+    case lst do
+      [] ->
+        case smerge(s, val) do
+          :bump -> :bump
+          {ss, dd} -> {ss, [], dd}
+        end
+
+      [key | rest] ->
+        case Map.fetch(s, key) do
+          {:ok, map} ->
+            case smerdate_aux(map, rest, val) do
+              :bump ->
+                :bump
+
+              {ss, ll, dd} ->
+                if ss == :undefined do
+                  {Map.delete(s, key), [key], dd}
+                else
+                  {Map.put(s, key, ss), [key | ll], dd}
+                end
+            end
+
+          :error ->
+            case n_smake_from_lst(rest, val) do
+              :undefined -> :bump
+              {ss, ll, dd} -> {Map.put(s, key, ss), [key | ll], dd}
+            end
+        end
+
+        # case lst
+    end
+  end
+
+  @spec smerdate_map(t, [any], t_node_diff) :: :bump | {t | :undefined, [any], t_node_diff | :bump}
+  def smerdate_map(s, lst, val) do
+    case lst do
+      [] ->
+        case smerge_aux_map(s, val) do
+          :bump -> :bump
+          {ss, dd} -> {ss, [], dd}
+        end
+
+      [key | rest] ->
+        case Map.fetch(s, key) do
+          {:ok, map} ->
+            case smerdate_aux(map, rest, val) do
+              :bump ->
+                :bump
+
+              {ss, ll, dd} ->
+                if ss == :undefined do
+                  {Map.delete(s, key), [key], dd}
+                else
+                  {Map.put(s, key, ss), [key | ll], dd}
+                end
+            end
+
+          :error ->
+            case n_smake_from_lst(rest, val) do
+              :undefined -> :bump
+              {ss, ll, dd} -> {Map.put(s, key, ss), [key | ll], dd}
+            end
+        end
+
+        # case lst
+    end
+  end
+
+  # @compile {:inline, smerdate: 3}
+  @spec smerdate_aux(t_node, [any], t_node_diff) :: :bump | {t_node | :undefined, [any], t_node_diff | :bump}
+  def smerdate_aux(s, lst, val) do
+    casemap s do
+      smerdate_map(s, lst, val)
+    else
+      case lst do
+        [] ->
+          case smerge_aux_val(s, val) do
+            :bump -> :bump
+            {ss, dd} -> {ss, [], dd}
+          end
+
+        _ ->
+          n_smake_from_lst(lst, val)
+      end
+    end
+  end
+
+  @doc """
+  Olyan esetben hasznalhato, amikor `val` mar meg van ragva, es biztosan effektiv.
+  """
+  # @compile {:inline, smerdate_n: 2}
+  @spec smerdate_n(t, [any], t_diff) :: {t | :undefined, [any]}
+  def smerdate_n(s, lst, val) do
+    case lst do
+      [] ->
+        case smerge(s, val) do
+          :bump ->
+            # Itt ilyen eset elvileg NEM LEHET!
+            Logger.warn("bump, s: #{inspect(s)}, val: #{inspect(val)}")
+            {s, []}
+
+          {ss, _dd} ->
+            {ss, []}
+        end
+
+      [key | rest] ->
+        case Map.fetch(s, key) do
+          {:ok, map} ->
+            smerdate_n_aux(map, rest, val) >>> {ss, ll}
+
+            if ss == :undefined do
+              {Map.delete(s, key), [key]}
+            else
+              {Map.put(s, key, ss), [key | ll]}
+            end
+
+          :error ->
+            {Map.put(s, key, smake_from_lst(rest, val)), lst}
+        end
+    end
+  end
+
+  @spec smerdate_n_map(t, [any], t_node_diff) :: {t | :undefined, [any]}
+  def smerdate_n_map(s, lst, val) do
+    case lst do
+      [] ->
+        case smerge_aux_map(s, val) do
+          :bump ->
+            # Itt ilyen eset elvileg NEM LEHET!
+            Logger.warn("bump, s: #{inspect(s)}, val: #{inspect(val)}")
+            {s, []}
+
+          {ss, _dd} ->
+            {ss, []}
+        end
+
+      [key | rest] ->
+        case Map.fetch(s, key) do
+          {:ok, map} ->
+            smerdate_n_aux(map, rest, val) >>> {ss, ll}
+
+            if ss == :undefined do
+              {Map.delete(s, key), [key]}
+            else
+              {Map.put(s, key, ss), [key | ll]}
+            end
+
+          :error ->
+            {Map.put(s, key, smake_from_lst(rest, val)), lst}
+        end
+    end
+  end
+
+  @spec smerdate_n_aux(t_node, [any], t_node_diff) :: {t_node | :undefined, [any]}
+  def smerdate_n_aux(s, lst, val) do
+    case lst do
+      [] ->
+        case smerge_aux(s, val) do
+          :bump ->
+            # Itt ilyen eset elvileg NEM LEHET!
+            Logger.warn("bump, s: #{inspect(s)}, val: #{inspect(val)}")
+            {s, []}
+
+          {ss, _dd} ->
+            {ss, []}
+        end
+
+      [key | rest] ->
+        casemap s do
+          case Map.fetch(s, key) do
+            {:ok, map} ->
+              smerdate_n_aux(map, rest, val) >>> {ss, ll}
+
+              if ss == :undefined do
+                {Map.delete(s, key), [key]}
+              else
+                {Map.put(s, key, ss), [key | ll]}
               end
 
             :error ->
-              ucasemap v do
-                case snormalize(v) do
-                  :undefined -> {s, schg, Map.delete(diff, k), true}
-                  :bump -> {Map.put(s, k, v), true, diff, dchg}
-                  nv -> {Map.put(s, k, nv), true, Map.put(diff, k, nv), true}
-                end
-              else
-                {Map.put(s, k, v), true, diff, dchg}
-              catch
-                {s, schg, Map.delete(diff, k), true}
-              end
+              {Map.put(s, key, smake_from_lst(rest, val)), lst}
           end
-        end) >>> {s, schg, diff, dchg}
-
-        # Map -> Map eredmenye
-        Util.wife :bump, schg do
-          Util.wife {:undefined, :undefined}, Map.size(s) != 0 do
-            Util.wife :bump, Map.size(diff) != 0 do
-              {s, if(dchg, do: diff, else: :bump)}
-            end
-          end
+        else
+          {smake_from_lst(lst, val), lst}
         end
-      else
-        # Ertek -> map
-        case snormalize(diff) do
-          :undefined -> {:undefined, :undefined}
-          :bump -> {diff, :bump}
-          ndiff -> {ndiff, ndiff}
-        end
-      end
-    else
-      # Ertek-csere
-      casemap s do
-        # Map -> ertek
-        {diff, :bump}
-      else
-        # Ertek -> ertek
-        if diff == s, do: :bump, else: {diff, :bump}
-      end
-    catch
-      {:undefined, :bump}
 
-      # casemap diff
+        # case lst
     end
 
-    # def smerge_aux
+    # def smerdate
   end
 
+  @doc """
+  Toplevel, ahol `s` biztosan map.
+  """
   # @compile {:inline, supdate: 3}
   @spec supdate(t, [any], any) :: {t, [any]} | :bump | :undefined
   def supdate(s, lst, val) do
     case val do
       :undefined ->
-        supdate_aux_u(s, lst)
+        supdate_aux_m_u(s, lst)
 
       _ ->
-        case supdate_aux(s, lst, val) do
+        case supdate_aux_m_val(s, lst, val) do
           :bump -> :bump
           upd -> {upd, lst}
         end
@@ -927,9 +1391,9 @@ defmodule Mlmap do
   end
 
   # @compile {:inline, supdate_aux: 3}
-  @spec supdate_aux(t, nonempty_list(any), any) :: t | :bump
-  @spec supdate_aux(any, [], a) :: :bump | a when a: var
-  def supdate_aux(s, lst, val) do
+  @spec supdate_aux_val(any, nonempty_list(any), any) :: t | :bump
+  @spec supdate_aux_val(any, [], a) :: :bump | a when a: var
+  def supdate_aux_val(s, lst, val) do
     case lst do
       [] ->
         if val == s, do: :bump, else: val
@@ -938,7 +1402,7 @@ defmodule Mlmap do
         casemap s do
           case Map.fetch(s, key) do
             {:ok, map} ->
-              case supdate_aux(map, rest, val) do
+              case supdate_aux_val(map, rest, val) do
                 :bump -> :bump
                 upd -> Map.put(s, key, upd)
               end
@@ -948,6 +1412,27 @@ defmodule Mlmap do
           end
         else
           %{key => smake_from_lst(rest, val)}
+        end
+    end
+  end
+
+  @spec supdate_aux_m_val(t, nonempty_list(any), any) :: :bump | t
+  @spec supdate_aux_m_val(t, [], a) :: :bump | a when a: var
+  def supdate_aux_m_val(s, lst, val) do
+    case lst do
+      [] ->
+        if val == s, do: :bump, else: val
+
+      [key | rest] ->
+        case Map.fetch(s, key) do
+          {:ok, map} ->
+            case supdate_aux_val(map, rest, val) do
+              :bump -> :bump
+              upd -> Map.put(s, key, upd)
+            end
+
+          :error ->
+            Map.put(s, key, smake_from_lst(rest, val))
         end
     end
   end
@@ -988,47 +1473,34 @@ defmodule Mlmap do
     end
   end
 
-  # @compile {:inline, smerdate: 3}
-  @spec smerdate(t_node, [any], t_node_diff) :: :bump | {t_node | :undefined, [any], t_node_diff | :bump}
-  def smerdate(s, lst, val) do
+  @spec supdate_aux_m_u(t, nonempty_list(any)) :: {t, [any]} | :undefined | :bump
+  @spec supdate_aux_m_u(t, []) :: :undefined
+  def supdate_aux_m_u(s, lst) do
     case lst do
       [] ->
-        smerge_aux(s, val)
-        |> case do
-          :bump -> :bump
-          {ss, dd} -> {ss, [], dd}
-        end
+        # Itt a torlese a levelnek.
+        :undefined
 
       [key | rest] ->
-        casemap s do
-          case Map.fetch(s, key) do
-            {:ok, map} ->
-              case smerdate(map, rest, val) do
-                :bump ->
-                  :bump
+        case Map.fetch(s, key) do
+          {:ok, map} ->
+            case supdate_aux_u(map, rest) do
+              :undefined ->
+                s = Map.delete(s, key)
+                if s == %{}, do: :undefined, else: {s, [key]}
 
-                {ss, ll, dd} ->
-                  if ss == :undefined do
-                    {Map.delete(s, key), [key], dd}
-                  else
-                    {Map.put(s, key, ss), [key | ll], dd}
-                  end
-              end
+              :bump ->
+                :bump
 
-            :error ->
-              case n_smake_from_lst(rest, val) do
-                :undefined -> :bump
-                {ss, ll, dd} -> {Map.put(s, key, ss), [key | ll], dd}
-              end
-          end
-        else
-          n_smake_from_lst(lst, val)
+              {upd, rslst} ->
+                {Map.put(s, key, upd), [key | rslst]}
+            end
+
+          # Nincs is benne, nem kell torolni
+          :error ->
+            :bump
         end
-
-        # case lst
     end
-
-    # def smerdate
   end
 
   # @compile {:inline, n_smake_from_lst: 2}
@@ -1039,50 +1511,6 @@ defmodule Mlmap do
       :bump -> {smake_from_lst(lst, val), lst, :bump}
       nval -> {smake_from_lst(lst, nval), lst, nval}
     end
-  end
-
-  @doc """
-  Olyan esetben hasznalhato, amikor `val` mar meg van ragva, es biztosan effektiv.
-  """
-  # @compile {:inline, smerdate_n: 2}
-  @spec smerdate_n(t_node, [any], t_node_diff) :: {t_node | :undefined, [any]}
-  def smerdate_n(s, lst, val) do
-    case lst do
-      [] ->
-        smerge_aux(s, val)
-        |> case do
-          :bump ->
-            # Itt ilyen eset elvileg NEM LEHET!
-            Logger.warn("bump, s: #{inspect(s)}, val: #{inspect(val)}")
-            {s, []}
-
-          {ss, _dd} ->
-            {ss, []}
-        end
-
-      [key | rest] ->
-        casemap s do
-          case Map.fetch(s, key) do
-            {:ok, map} ->
-              smerdate_n(map, rest, val) >>> {ss, ll}
-
-              if ss == :undefined do
-                {Map.delete(s, key), [key]}
-              else
-                {Map.put(s, key, ss), [key | ll]}
-              end
-
-            :error ->
-              {Map.put(s, key, smake_from_lst(rest, val)), lst}
-          end
-        else
-          {smake_from_lst(lst, val), lst}
-        end
-
-        # case lst
-    end
-
-    # def smerdate
   end
 
   # @compile {:inline, smake_from_lst: 2}
