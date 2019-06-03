@@ -366,6 +366,10 @@ defmodule Stage do
 
   @spec merge_2level(t, [{any, any, [any], Map.t(), iden}]) :: t
   def merge_2level(s, ops) do
+    current1 = s.current1
+    current2 = s.current2
+    current12 = s.current12
+
     Enum.reduce(ops, {s.internal1, s.stage1, s.internal2, s.stage2, s.internal12, s.stage12}, fn {map, key, lst, val, iden}, {internal1, stage1, internal2, stage2, internal12, stage12} ->
       ulst = [map, key | lst]
 
@@ -378,28 +382,64 @@ defmodule Stage do
 
         {internal1, ulst, nval} ->
           nval = Util.wife(nval, nval == :bump, do: val)
-          stage1 = Mlmap.merdate(stage1, ulst, nval)
+
+          case nval do
+            :undefined -> Mlmap.dupdate(current1, stage1, ulst, :undefined)
+            _ -> Mlmap.dmerdate(current1, stage1, ulst, nval)
+          end >>> stage1
 
           lst12 = [{map, key} | lst]
-          {internal12, lst12} = Mlmap.smerdate_n(internal12, lst12, nval)
-          stage12 = Mlmap.merdate(stage12, lst12, nval)
 
-          if iden != nil do
-            lst2 = [key, map | lst]
+          case nval do
+            :undefined ->
+              {internal12, lst12} = Mlmap.supdate(internal12, lst12, :undefined)
+              stage12 = Mlmap.dupdate(current12, stage12, lst12, :undefined)
 
-            case Mlmap.smerdate(internal2, lst2, nval) do
-              :bump ->
+              if iden != nil do
+                lst2 = [key, map | lst]
+
+                case Mlmap.supdate(internal2, lst2, :undefined) do
+                  :bump ->
+                    {internal1, stage1, internal2, stage2, internal12, stage12}
+
+                  :undefined ->
+                    {internal1, stage1, %{}, :undefined, internal12, stage12}
+
+                  {internal2, lst2} ->
+                    stage2 = Mlmap.dupdate(current2, stage2, lst2, :undefined)
+                    {internal1, stage1, internal2, stage2, internal12, stage12}
+                end
+              else
                 {internal1, stage1, internal2, stage2, internal12, stage12}
+              end
 
-              {:undefined, _, _} ->
-                {internal1, stage1, %{}, :undefined, internal12, stage12}
+            _ ->
+              {internal12, lst12} = Mlmap.smerdate_n(internal12, lst12, nval)
+              stage12 = Mlmap.dmerdate(current12, stage12, lst12, nval)
 
-              {internal2, lst2, nval} ->
-                stage2 = Mlmap.merdate(stage2, lst2, nval)
+              if iden != nil do
+                lst2 = [key, map | lst]
+
+                case Mlmap.smerdate(internal2, lst2, nval) do
+                  :bump ->
+                    {internal1, stage1, internal2, stage2, internal12, stage12}
+
+                  {:undefined, _, _} ->
+                    {internal1, stage1, %{}, :undefined, internal12, stage12}
+
+                  {internal2, lst2, nnval} ->
+                    nnval = Util.wife(nnval, nnval == :bump, do: nval)
+
+                    case nnval do
+                      :undefined -> Mlmap.dupdate(current2, stage2, lst2, :undefined)
+                      _ -> Mlmap.dmerdate(current2, stage2, lst2, nnval)
+                    end >>> stage2
+
+                    {internal1, stage1, internal2, stage2, internal12, stage12}
+                end
+              else
                 {internal1, stage1, internal2, stage2, internal12, stage12}
-            end
-          else
-            {internal1, stage1, internal2, stage2, internal12, stage12}
+              end
           end
       end
     end) >>> {internal1, stage1, internal2, stage2, internal12, stage12}

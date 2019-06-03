@@ -158,11 +158,10 @@ defmodule Store do
     # Logger.warn(" store: #{name} =====stage1======> #{inspect stage.stage1, pretty: true} ")
     # Logger.warn(" store: #{name} =====internal======> #{inspect internal1, pretty: true} ")
 
-    # Megtevesztes! Itt az internal* megegyezik a start*-gal a stage-ben.
-    diff1 = stage.stage1 |> Mlmap.filter(internal1)
-    diff2 = stage.stage2 |> Mlmap.filter(internal2)
+    diff1 = stage.stage1
+    diff2 = stage.stage2
     # Logger.warn("stage.stage12: #{inspect stage.stage12}, internal12: #{inspect internal12}, vegleges: #{inspect stage.internal12}")
-    diff12 = stage.stage12 |> Mlmap.filter(internal12)
+    diff12 = stage.stage12
     # Logger.warn(" store: #{name} ======diff1====> #{inspect diff1, pretty: true} ")
     # Logger.warn("diff12: #{inspect diff12}")
 
@@ -183,18 +182,18 @@ defmodule Store do
     # if Map.size(diff1) != 0 or Map.size(diff2) != 0 or Map.size(diff12) != 0 do
     # Felesleges az 1-re es 12-re ellenorizni, ha azokban van valtozas, akkor az 1-ben is.
 
-    if Map.size(diff1) != 0 do
+    if diff1 == :undefined or Map.size(diff1) != 0 do
       ver_num = if keep, do: ver_num_delete(s.ver_num, rule_time), else: s.ver_num
       ver_num = ver_num_delete(ver_num, last)
       lastp1 = last + 1
       ver_num = Map.put(ver_num, lastp1, if(keep, do: 2, else: 1))
 
       # Valtozasok atvezetese.
-      diffs1 = diffs1 |> Enum.filter(fn {k, _d} -> Map.get(ver_num, k, 0) > 0 end) |> Enum.map(fn {k, d} -> {k, Mlmap.merge(d, diff1)} end)
+      diffs1 = diffs1 |> Enum.filter(fn {k, _d} -> Map.get(ver_num, k, 0) > 0 end) |> Enum.map(fn {k, d} -> {k, Mlmap.dmerge(origs1[k], d, diff1)} end)
       diffs1 = [{last, diff1} | diffs1]
-      diffs2 = diffs2 |> Enum.filter(fn {k, _d} -> Map.get(ver_num, k, 0) > 0 end) |> Enum.map(fn {k, d} -> {k, Mlmap.merge(d, diff2)} end)
+      diffs2 = diffs2 |> Enum.filter(fn {k, _d} -> Map.get(ver_num, k, 0) > 0 end) |> Enum.map(fn {k, d} -> {k, Mlmap.dmerge(origs2[k], d, diff2)} end)
       diffs2 = [{last, diff2} | diffs2]
-      diffs12 = diffs12 |> Enum.filter(fn {k, _d} -> Map.get(ver_num, k, 0) > 0 end) |> Enum.map(fn {k, d} -> {k, Mlmap.merge(d, diff12)} end)
+      diffs12 = diffs12 |> Enum.filter(fn {k, _d} -> Map.get(ver_num, k, 0) > 0 end) |> Enum.map(fn {k, d} -> {k, Mlmap.dmerge(origs12[k], d, diff12)} end)
       diffs12 = [{last, diff12} | diffs12]
 
       mod1 = diff1 |> Map.keys() |> Enum.map(fn x -> {x, lastp1} end) |> Map.new()

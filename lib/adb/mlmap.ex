@@ -963,36 +963,71 @@ defmodule Mlmap do
     end
   end
 
-  # @spec dmerdate(t, [any], any) :: t
-  # def dmerdate(s, lst, val) do
-  #   case lst do
-  #     [] ->
-  #       merge(s, val)
-  #
-  #     [key | rest] ->
-  #       casemap s do
-  #         upd =
-  #           case Map.fetch(s, key) do
-  #             {:ok, map} -> merdate(map, rest, val)
-  #             :error -> make_from_lst(rest, val)
-  #           end
-  #
-  #         Map.put(s, key, upd)
-  #       else
-  #         upd = make_from_lst(rest, val)
-  #         %{key => upd}
-  #       end
-  #   end
-  # end
-  #
-  # @spec dmake_from_lst([], a) :: a when a: var
-  # @spec dmake_from_lst(nonempty_list(any()), any) :: t
-  # def dmake_from_lst(lst, val) do
-  #   case lst do
-  #     [] -> val
-  #     [k | rest] -> %{k => make_from_lst(rest, val)}
-  #   end
-  # end
+  @spec dmerdate(t_node, t_node_diff, [any], any) :: t_node_diff | :bump
+  def dmerdate(orig, diff, lst, val) do
+    case lst do
+      [] ->
+        dmerge_aux(orig, diff, val)
+
+      [key | rest] ->
+        casemap diff do
+          case Map.fetch(diff, key) do
+            {:ok, map} ->
+              # A diffben benne van a kulcs!
+              casemap orig do
+                case Map.fetch(orig, key) do
+                  {:ok, omap} ->
+                    case dmerdate(omap, map, rest, val) do
+                      :bump ->
+                        diff = Map.delete(diff, key)
+                        if diff == %{}, do: :bump, else: diff
+
+                      x ->
+                        Map.put(diff, key, x)
+                    end
+
+                  :error ->
+                    # Mivel az origban nem volt benne, a diffnek ez az aga nem tartalmazhat torlest,
+                    # es mivel effektiv, ugyanolyan erteket sem, azaz az egyszeru update is jo.
+                    Map.put(diff, key, update_aux(map, rest, val))
+                end
+              else
+                # Egyszeru feluliras.
+                Map.put(diff, key, update_aux(map, rest, val))
+              end
+
+            :error ->
+              # A diffben nincs benne.
+              # Mivel ez effektiv valtoztatas, ez az orighoz kepest is valtoztas kell legyen, kulohben nem letezne.
+              # Viszont maga a valtoztatas mar optimalis, mivel egyszer mar ossze volt vetve origgal
+              # (mivel az uj adatszerkezetnek ez a resze meg kell egyezzen origgal, hiszen diffnek nem resze)
+              # Ezert aztan egy egyszeru insert meg kell tegye.
+              Map.put(diff, key, make_from_lst(rest, val))
+          end
+        else
+          # Diff ertek vagy torles.
+          # Itt toroltunk vagy felulirtunk egy erteket, vagy egy map-et.
+          casemap orig do
+            # Map volt, ezert azt ki kell robbantani.
+            omap = Enum.map(orig, fn {k, _} -> {k, :undefined} end) |> Map.new()
+
+            case Mlmap.get(orig, lst, :undefined) do
+              :undefined ->
+                # Nem volt benne az eredetiben.
+                Map.put(omap, key, make_from_lst(rest, val))
+
+              x ->
+                # Ha ez ugyanaz, mint az eredeti, akkor egyszeruen torolni kell az agat,
+                # kulonben beilleszteni.
+                if val == x, do: Map.delete(omap, key), else: Map.put(omap, key, make_from_lst(rest, val))
+            end
+          else
+            # Erteket irtunk felul vagy toroltunk, ezert csak csere a map-ra.
+            %{key => make_from_lst(rest, val)}
+          end
+        end
+    end
+  end
 
   ######          ##     ## ########  ########          ##     ## ######## ########    ###             ######
   ##              ##     ## ##     ## ##     ##         ###   ### ##          ##      ## ##                ##
