@@ -103,8 +103,11 @@ defmodule Mlmap do
   }
   iex> ddiff == a
   true
+  iex>  metadiff = ADB.Mlmap.ddmerge(%{}, ao, diff, "undefined")
+  iex>  metadiff == {a, a}
+  true
   # KIINDULOALLAPOT A DIFFMERGE TESZTELESEHEZ
-  iex> a2 = a; diff2 = diff; ddiff = %{}; ddiff2 = %{}
+  iex> a2 = a; diff2 = diff; ddiff = %{}; ddiff2 = %{}; metadiff = %{}; ometadiff = %{}
   iex> a2
   %{
     "spanning" => %{
@@ -131,12 +134,19 @@ defmodule Mlmap do
   }
   iex>  {a,x} = ADB.Mlmap.supdate(a, ["spanning", "o213"], :undefined)
   iex>  diff = ADB.Mlmap.dupdate(ao, diff, x, :undefined)
-  iex>  ddiff = ADB.Mlmap.dmerge(a2, ddiff, ADB.Mlmap.make_from_lst(x, :undefined))
+  iex>  stepdiff = ADB.Mlmap.make_from_lst(x, :undefined)
+  iex>  ddiff = ADB.Mlmap.dmerge(a2, ddiff, stepdiff)
+  iex>  {metadiff, dmetadiff} = ADB.Mlmap.ddmerge(a2, metadiff, stepdiff, "undefined")
+  iex>  metadiff == ADB.Mlmap.value_transform(ddiff, :undefined, "undefined")
+  true
+  iex>  {metadiff, :bump} == ADB.Mlmap.smerge(ometadiff, dmetadiff)
+  true
   iex>  ddiff2 = ADB.Mlmap.dupdate(a2, ddiff2, x, :undefined)
   iex>  ddiff == ddiff2
   true
   iex>  ADB.Mlmap.supdate(a, ["spanning", "c2", "folder"], :undefined)
   :bump
+  iex> ometadiff = metadiff
   iex>  {a,x} = ADB.Mlmap.supdate(a, ["spanning", "v12"], :undefined)
   {%{
      "spanning" => %{
@@ -160,10 +170,17 @@ defmodule Mlmap do
       "v21" => :undefined
     }
   }
-  iex>  ddiff = ADB.Mlmap.dmerge(a2, ddiff, ADB.Mlmap.make_from_lst(x, :undefined))
+  iex>  stepdiff = ADB.Mlmap.make_from_lst(x, :undefined)
+  iex>  ddiff = ADB.Mlmap.dmerge(a2, ddiff, stepdiff)
+  iex>  {metadiff, dmetadiff} = ADB.Mlmap.ddmerge(a2, metadiff, stepdiff, "undefined")
+  iex>  metadiff == ADB.Mlmap.value_transform(ddiff, :undefined, "undefined")
+  true
   iex>  ddiff2 = ADB.Mlmap.dupdate(a2, ddiff2, x, :undefined)
   iex>  ddiff == ddiff2
   true
+  iex>  {metadiff, :bump} == ADB.Mlmap.smerge(ometadiff, dmetadiff)
+  true
+  iex> ometadiff = metadiff
   iex>  {a, x} = ADB.Mlmap.supdate(a, ["spanning", "v12", "c3"], true)
   iex>  diff = ADB.Mlmap.dupdate(ao, diff, x, true)
   %{
@@ -176,16 +193,23 @@ defmodule Mlmap do
       "v21" => :undefined
     }
   }
-  iex>  ddiff = ADB.Mlmap.dmerge(a2, ddiff, ADB.Mlmap.make_from_lst(x, true))
+  iex>  stepdiff = ADB.Mlmap.make_from_lst(x, true)
+  iex>  ddiff = ADB.Mlmap.dmerge(a2, ddiff, stepdiff)
   %{
     "spanning" => %{
       "o213" => :undefined,
       "v12" => %{"c1" => :undefined, "c3" => true}
     }
   }
+  iex>  {metadiff, dmetadiff} = ADB.Mlmap.ddmerge(a2, metadiff, stepdiff, "undefined")
+  iex>  metadiff == ADB.Mlmap.value_transform(ddiff, :undefined, "undefined")
+  true
   iex>  ddiff2 = ADB.Mlmap.dupdate(a2, ddiff2, x, true)
   iex>  ddiff == ddiff2
   true
+  iex>  {metadiff, :bump} == ADB.Mlmap.smerge(ometadiff, dmetadiff)
+  true
+  iex> ometadiff = metadiff
   iex>  {a, x} = ADB.Mlmap.supdate(a, ["spanning", "v12", "c1"], true)
   iex>  diff = ADB.Mlmap.dupdate(ao, diff, x, true)
   %{
@@ -198,11 +222,18 @@ defmodule Mlmap do
       "v21" => :undefined
     }
   }
-  iex>  ddiff = ADB.Mlmap.dmerge(a2, ddiff, ADB.Mlmap.make_from_lst(x, true))
+  iex>  stepdiff = ADB.Mlmap.make_from_lst(x, true)
+  iex>  ddiff = ADB.Mlmap.dmerge(a2, ddiff, stepdiff)
   %{"spanning" => %{"o213" => :undefined, "v12" => %{"c3" => true}}}
+  iex>  {metadiff, dmetadiff} = ADB.Mlmap.ddmerge(a2, metadiff, stepdiff, "undefined")
+  iex>  metadiff == ADB.Mlmap.value_transform(ddiff, :undefined, "undefined")
+  true
   iex>  ddiff2 = ADB.Mlmap.dupdate(a2, ddiff2, x, true)
   iex>  ddiff == ddiff2
   true
+  iex>  {metadiff, :bump} == ADB.Mlmap.smerge(ometadiff, dmetadiff)
+  true
+  iex> ometadiff = metadiff
   iex>  {a, x} = ADB.Mlmap.supdate(a, ["spanning", "v12", "c3"], :undefined)
   iex>  diff = ADB.Mlmap.dupdate(ao, diff, x, :undefined)
   %{
@@ -215,15 +246,28 @@ defmodule Mlmap do
       "v21" => :undefined
     }
   }
-  iex>  ddiff = ADB.Mlmap.dmerge(a2, ddiff, ADB.Mlmap.make_from_lst(x, :undefined))
+  iex>  stepdiff = ADB.Mlmap.make_from_lst(x, :undefined)
+  iex>  ddiff = ADB.Mlmap.dmerge(a2, ddiff, stepdiff)
+  iex>  {metadiff, dmetadiff} = ADB.Mlmap.ddmerge(a2, metadiff, stepdiff, "undefined")
+  iex>  metadiff == ADB.Mlmap.value_transform(ddiff, :undefined, "undefined")
+  true
   iex>  ddiff2 = ADB.Mlmap.dupdate(a2, ddiff2, x, :undefined)
   iex>  ddiff == ddiff2
   true
+  iex>  {metadiff, :bump} == ADB.Mlmap.smerge(ometadiff, dmetadiff)
+  true
+  iex> ometadiff = metadiff
   iex> {a, x} = ADB.Mlmap.supdate(a, ["spanning", "v12", "c1"], :undefined)
   iex> diff = ADB.Mlmap.dupdate(ao, diff, x, :undefined)
-  iex>  ddiff = ADB.Mlmap.dmerge(a2, ddiff, ADB.Mlmap.make_from_lst(x, :undefined))
+  iex>  stepdiff = ADB.Mlmap.make_from_lst(x, :undefined)
+  iex>  ddiff = ADB.Mlmap.dmerge(a2, ddiff, stepdiff)
+  iex>  {metadiff, dmetadiff} = ADB.Mlmap.ddmerge(a2, metadiff, stepdiff, "undefined")
+  iex>  metadiff == ADB.Mlmap.value_transform(ddiff, :undefined, "undefined")
+  true
   iex>  ddiff2 = ADB.Mlmap.dupdate(a2, ddiff2, x, :undefined)
   iex>  ddiff == ddiff2
+  true
+  iex>  {metadiff, :bump} == ADB.Mlmap.smerge(ometadiff, dmetadiff)
   true
   iex> diff
   %{
@@ -736,7 +780,12 @@ defmodule Mlmap do
               x ->
                 # Ha ez ugyanaz, mint az eredeti, akkor egyszeruen torolni kell az agat,
                 # kulonben beilleszteni.
-                if val == x, do: Map.delete(omap, key), else: Map.put(omap, key, make_from_lst(rest, val))
+                if val == x do
+                  Map.delete(omap, key) >>> omap
+                  if Map.size(omap) == 0, do: :bump, else: omap
+                else
+                  Map.put(omap, key, make_from_lst(rest, val))
+                end
             end
           else
             # Erteket irtunk felul vagy toroltunk, ezert csak csere a map-ra.
@@ -972,7 +1021,7 @@ defmodule Mlmap do
         dmerge_diffdiff(odiff, diff)
       else
         # Ertek -> map
-        # odiff ertek, es biztosan elter.
+        # odiff ertek, es biztosan elter. Itt diff biztosan csak insert.
         diff
       end
     else
@@ -1008,7 +1057,7 @@ defmodule Mlmap do
 
   @spec dmerge_check_aux(t_node, t_node_diff) :: :bump | t_node_diff
   def dmerge_check_aux(orig, diff) do
-    casemap diff do
+    ucasemap diff do
       # Map
       casemap orig do
         # Map -> map
@@ -1026,6 +1075,8 @@ defmodule Mlmap do
         # ertek -> ertek
         if diff == orig, do: :undefined, else: :bump
       end
+    catch
+      :bump
     end
   end
 
@@ -1085,7 +1136,12 @@ defmodule Mlmap do
               x ->
                 # Ha ez ugyanaz, mint az eredeti, akkor egyszeruen torolni kell az agat,
                 # kulonben beilleszteni.
-                if val == x, do: Map.delete(omap, key), else: Map.put(omap, key, make_from_lst(rest, val))
+                if val == x do
+                  Map.delete(omap, key) >>> omap
+                  if Map.size(omap) == 0, do: :bump, else: omap
+                else
+                  Map.put(omap, key, make_from_lst(rest, val))
+                end
             end
           else
             # Erteket irtunk felul vagy toroltunk, ezert csak csere a map-ra.
@@ -1103,138 +1159,148 @@ defmodule Mlmap do
   ##              ##     ## ##        ##     ##         ##     ##  ##  ##       ##       ##     ##  ##  ##       ##                    ##
   ######           #######  ##        ########  ####### ########  #### ##       ##       ########  #### ##       ##                ######
 
-  # @spec ddmerge_mmm(t, t, t_undefined, any) :: {t_undefined, t_diff}
-  # def ddmerge_mmm(orig, odiff, diff, meta) do
-  #   Enum.reduce(diff, {odiff, %{}}, fn {k, val}, {odiff, ndiff} ->
-  #     case Map.fetch(odiff, k) do
-  #       {:ok, v} ->
-  #         case Map.fetch(orig, k) do
-  #           {:ok, ov} ->
-  #             ddmerge_aux(ov, v, val, meta)
-  #
-  #           :error ->
-  #             # Eredetiben nem volt benne, es effektiv is,
-  #             ucasemap val do
-  #               casemap v do
-  #                 # Merge
-  #                 case dmerge_diffdiff_aux(v, val) do
-  #                   :undefined -> meta
-  #                   x -> x
-  #                 end
-  #               else
-  #                 # Csere
-  #                 val
-  #               end
-  #             else
-  #               # Csere
-  #               val
-  #             catch
-  #               meta
-  #             end >>> x
-  #
-  #             {x, x}
-  #         end
-  #
-  #       :error ->
-  #         case Map.fetch(orig, k) do
-  #           {:ok, ov} ->
-  #             case ddmerge_check_aux(ov, val, meta) do
-  #               :bump -> val
-  #               # Ez elvileg nem lehet :undefined, mivel az azt jelentene, hogy diff-nek ez az aga felesleges,
-  #               # Tehat hatastalan, holott diff elvileg optimalizalt.
-  #               dd -> dd
-  #             end
-  #
-  #           # Csak insertek lehetnek
-  #           :error ->
-  #             val
-  #         end >>> x
-  #
-  #         {x, x}
-  #     end >>> {to_put1, to_put2}
-  #
-  #     {Map.put(odiff, k, to_put), Map.put(ndiff, k, to_put2)}
-  #   end)
-  # end
-  #
-  # @doc """
-  # Legfelso szint, ahol orig biztosan map, es diffek vagy map-ok, vagy legfeljebb `:undefined`.
-  # """
-  # @spec ddmerge(t, t, t_diff, any) :: {t , t_diff}
-  # def ddmerge(orig, odiff, diff, meta) do
-  #   casemap diff do
-  #     # Map
-  #     casemap(odiff) do
-  #       # Map -> Map
-  #       # (map) -> map -> map
-  #       ddmerge_mmm(orig, odiff, diff, meta)
-  #     else
-  #       # Ertek -> map
-  #       # odiff ertek, es biztosan elter, tehat a kerdes legfeljebb az, hogy mi volt orig itt.
-  #       # (Map) -> ertek -> map
-  #       # Itt egy erteket cserelunk vissza egy olyan helyen, ahol eredetileg map volt.
-  #       # Magyaran diff-ben nem lehet mar :undefined, viszont egyes elemei (vagy akar az egesz)
-  #       # megegyezhet orig-gal, azaz ossze kell vetni vele teljesen.
-  #       case ddmerge_check(orig, diff, meta) do
-  #         :bump -> {diff, diff}
-  #         dd -> {dd, dd}
-  #       end
-  #     end
-  #   else
-  #     # Ertek == :undefined
-  #     # Itt odiff nem lehet :undefined, mivel diff effektiv.
-  #     # Viszont ezen a ponton orig letezik, tehat torolni kell.
-  #     {meta, meta}
-  #   end
-  # end
-  #
-  # @spec ddmerge_aux(t_node, t_node, t_node_diff, any) :: {t_node, t_node_diff}
-  # def ddmerge_aux(orig, odiff, diff, meta) do
-  #   ucasemap diff do
-  #     # Map
-  #     casemap(odiff) do
-  #       # Map -> Map
-  #       casemap orig do
-  #         # (map) -> map -> map
-  #         ddmerge_mmm(orig, odiff, diff, meta)
-  #       else
-  #         # {ertek} -> map -> map
-  #         # Mivel itt orig ertek, nem szamit. Es mivel diff effektiv, ezert itt ossze kell mergelni odiffel.
-  #         dmerge_diffdiff(odiff, diff) >>> x
-  #         {x, x}
-  #       end
-  #     else
-  #       # Ertek -> map
-  #       # odiff ertek, es biztosan elter, tehat a kerdes legfeljebb az, hogy mi volt orig itt.
-  #       casemap orig do
-  #         # (Map) -> ertek -> map
-  #         # Itt egy erteket cserelunk vissza egy olyan helyen, ahol eredetileg map volt.
-  #         # Magyaran diff-ben nem lehet mar :undefined, viszont egyes elemei (vagy akar az egesz)
-  #         # megegyezhet orig-gal, azaz ossze kell vetni vele teljesen.
-  #         case ddmerge_check(orig, diff, meta) do
-  #           :bump -> {diff, diff}
-  #           dd -> {dd, dd}
-  #         end
-  #       else
-  #         # (Ertek) -> ertek -> map
-  #         # Ertek volt mindket eredeti, biztosan cserelheto map-ra.
-  #         # Itt egeszen biztosan nincs :undefined diff-ben, mivel effektiv es minimalis.
-  #         {diff, diff}
-  #       end
-  #     end
-  #   else
-  #     # Ertek
-  #     # Itt odiff nem lehet egyenlo diff-fel, mivel az effektiv.
-  #     # A kerdes az, hogy orig egyenlo-e.
-  #     # Ha igen, akkor odiffnak ezt az agat torolni kell, kulonben felulirni.
-  #     if orig == diff, do: :undefined, else: diff
-  #   catch
-  #     # :undefined
-  #     # Itt odiff nem lehet :undefined, mivel diff effektiv.
-  #     # Viszont ezen a ponton orig letezik, tehat torolni kell.
-  #     {meta, meta}
-  #   end
-  # end
+  @spec ddmerge_mmm(t, t, t_undefined, any) :: {t_undefined, t_diff}
+  def ddmerge_mmm(orig, odiff, diff, meta) do
+    Enum.reduce(diff, {odiff, %{}}, fn {k, val}, {odiff, ndiff} ->
+      case Map.fetch(odiff, k) do
+        {:ok, v} ->
+          case Map.fetch(orig, k) do
+            {:ok, ov} ->
+              ddmerge_aux(ov, v, val, meta)
+
+            :error ->
+              # Eredetiben nem volt benne, es effektiv is,
+              ucasemap val do
+                casemap v do
+                  # Merge
+                  case dmerge_diffdiff_aux(v, val) do
+                    :bump -> :bump
+                    dd -> {dd, dd}
+                  end
+                else
+                  # Csere
+                  {val, val}
+                end
+              else
+                # Csere
+                {val, val}
+              catch
+                # Torles, mivel az eredetiben nem volt benne, kiutheto a diff-bol.
+                :bump
+              end
+          end
+
+        :error ->
+          case Map.fetch(orig, k) do
+            {:ok, ov} ->
+              # Itt nem kell robbantani, mert odiff-nek itt nem volt kulcsa, azaz orig ervenyesult eleve,
+              # azaz itt egy meg mindig meglevo aggal kell egyesiteni, tehat nem kell visszahozni a regi kulcsokat.
+              case ddmerge_check_aux(ov, val, meta) do
+                :bump -> {val, val}
+                # Ez elvileg nem lehet :undefined, mivel az azt jelentene, hogy diff-nek ez az aga felesleges,
+                # Tehat hatastalan, holott diff elvileg optimalizalt.
+                dd -> {dd, dd}
+              end
+
+            :error ->
+              {val, val}
+          end
+      end
+      |> case do
+        :bump -> {Map.delete(odiff, k), Map.put(ndiff, k, :undefined)}
+        {a, b} -> {Map.put(odiff, k, a), Map.put(ndiff, k, b)}
+      end
+    end) >>> {odiff, ndiff}
+
+    if Map.size(odiff) == 0, do: :bump, else: {odiff, ndiff}
+  end
+
+  @doc """
+  Legfelso szint, ahol orig biztosan map, es diffek vagy map-ok, vagy legfeljebb `:undefined`.
+  """
+  @spec ddmerge(t, t, t_diff, any) :: {t, t_diff} | :bump
+  def ddmerge(orig, odiff, diff, meta) do
+    casemap diff do
+      # Map
+      casemap(odiff) do
+        # Map -> Map
+        # (map) -> map -> map
+        ddmerge_mmm(orig, odiff, diff, meta)
+      else
+        # Ertek -> map
+        # odiff ertek, es biztosan elter, tehat a kerdes legfeljebb az, hogy mi volt orig itt.
+        # (Map) -> ertek -> map
+        # Itt egy erteket cserelunk vissza egy olyan helyen, ahol eredetileg map volt.
+        # Magyaran diff-ben nem lehet mar :undefined, viszont egyes elemei (vagy akar az egesz)
+        # megegyezhet orig-gal, azaz ossze kell vetni vele teljesen.
+        diff = Map.keys(orig) |> Enum.map(fn x -> {x, :undefined} end) |> Map.new() |> Map.merge(diff)
+
+        case ddmerge_check(orig, diff, meta) do
+          :bump -> {diff, diff}
+          :undefined -> :bump
+          dd -> {dd, dd}
+        end
+      end
+    else
+      # Ertek == :undefined
+      # Itt odiff nem lehet :undefined, mivel diff effektiv.
+      # Viszont ezen a ponton orig letezik, tehat torolni kell.
+      {meta, meta}
+    end
+  end
+
+  @spec ddmerge_aux(t_node, t_node, t_node_diff, any) :: {t_node, t_node_diff} | :bump
+  def ddmerge_aux(orig, odiff, diff, meta) do
+    ucasemap diff do
+      # Map
+      casemap(odiff) do
+        # Map -> Map
+        casemap orig do
+          # (map) -> map -> map
+          ddmerge_mmm(orig, odiff, diff, meta)
+        else
+          # {ertek} -> map -> map
+          # Mivel itt orig ertek, nem szamit. Es mivel diff effektiv, ezert itt ossze kell mergelni odiffel.
+          case dmerge_diffdiff(odiff, diff) do
+            :bump -> :bump
+            dd -> {dd, dd}
+          end
+        end
+      else
+        # Ertek -> map
+        # odiff ertek, es biztosan elter, tehat a kerdes legfeljebb az, hogy mi volt orig itt.
+        casemap orig do
+          # (Map) -> ertek -> map
+          # Itt egy erteket cserelunk vissza egy olyan helyen, ahol eredetileg map volt.
+          # Magyaran diff-ben nem lehet mar :undefined, viszont egyes elemei (vagy akar az egesz)
+          # megegyezhet orig-gal, azaz ossze kell vetni vele teljesen.
+          diff = Map.keys(orig) |> Enum.map(fn x -> {x, :undefined} end) |> Map.new() |> Map.merge(diff)
+
+          case ddmerge_check(orig, diff, meta) do
+            :bump -> {diff, diff}
+            :undefined -> :bump
+            dd -> {dd, dd}
+          end
+        else
+          # (Ertek) -> ertek -> map
+          # Ertek volt mindket eredeti, biztosan cserelheto map-ra.
+          # Itt egeszen biztosan nincs :undefined diff-ben, mivel effektiv es minimalis.
+          {diff, diff}
+        end
+      end
+    else
+      # Ertek
+      # Itt odiff nem lehet egyenlo diff-fel, mivel az effektiv.
+      # A kerdes az, hogy orig egyenlo-e.
+      # Ha igen, akkor odiffnak ezt az agat torolni kell, kulonben felulirni.
+      if orig == diff, do: :bump, else: {diff, diff}
+    catch
+      # :undefined
+      # Itt odiff nem lehet :undefined, mivel diff effektiv.
+      # Viszont ezen a ponton orig letezik, tehat torolni kell.
+      {meta, meta}
+    end
+  end
 
   @spec ddmerge_check(t, t_undefined, any) :: :bump | t_diff
   def ddmerge_check(orig, diff, meta) do
@@ -1284,71 +1350,91 @@ defmodule Mlmap do
     end
   end
 
-  # @spec ddmerdate(t_node, t_node_diff, [any], any) :: t_node_diff | :bump
-  # def ddmerdate(orig, diff, lst, val) do
-  #   case lst do
-  #     [] ->
-  #       ddmerge_aux(orig, diff, val)
-  #
-  #     [key | rest] ->
-  #       casemap diff do
-  #         case Map.fetch(diff, key) do
-  #           {:ok, map} ->
-  #             # A diffben benne van a kulcs!
-  #             casemap orig do
-  #               case Map.fetch(orig, key) do
-  #                 {:ok, omap} ->
-  #                   case ddmerdate(omap, map, rest, val) do
-  #                     :bump ->
-  #                       diff = Map.delete(diff, key)
-  #                       if diff == %{}, do: :bump, else: diff
-  #
-  #                     x ->
-  #                       Map.put(diff, key, x)
-  #                   end
-  #
-  #                 :error ->
-  #                   # Mivel az origban nem volt benne, a diffnek ez az aga nem tartalmazhat torlest,
-  #                   # es mivel effektiv, ugyanolyan erteket sem, azaz az egyszeru update is jo.
-  #                   Map.put(diff, key, update_aux(map, rest, val))
-  #               end
-  #             else
-  #               # Egyszeru feluliras.
-  #               Map.put(diff, key, update_aux(map, rest, val))
-  #             end
-  #
-  #           :error ->
-  #             # A diffben nincs benne.
-  #             # Mivel ez effektiv valtoztatas, ez az orighoz kepest is valtoztas kell legyen, kulohben nem letezne.
-  #             # Viszont maga a valtoztatas mar optimalis, mivel egyszer mar ossze volt vetve origgal
-  #             # (mivel az uj adatszerkezetnek ez a resze meg kell egyezzen origgal, hiszen diffnek nem resze)
-  #             # Ezert aztan egy egyszeru insert meg kell tegye.
-  #             Map.put(diff, key, make_from_lst(rest, val))
-  #         end
-  #       else
-  #         # Diff ertek vagy torles.
-  #         # Itt toroltunk vagy felulirtunk egy erteket, vagy egy map-et.
-  #         casemap orig do
-  #           # Map volt, ezert azt ki kell robbantani.
-  #           omap = Enum.map(orig, fn {k, _} -> {k, :undefined} end) |> Map.new()
-  #
-  #           case Mlmap.get(orig, lst, :undefined) do
-  #             :undefined ->
-  #               # Nem volt benne az eredetiben.
-  #               Map.put(omap, key, make_from_lst(rest, val))
-  #
-  #             x ->
-  #               # Ha ez ugyanaz, mint az eredeti, akkor egyszeruen torolni kell az agat,
-  #               # kulonben beilleszteni.
-  #               if val == x, do: Map.delete(omap, key), else: Map.put(omap, key, make_from_lst(rest, val))
-  #           end
-  #         else
-  #           # Erteket irtunk felul vagy toroltunk, ezert csak csere a map-ra.
-  #           %{key => make_from_lst(rest, val)}
-  #         end
-  #       end
-  #   end
-  # end
+  @spec ddmerdate(t_node, t_node, [any], t_node_diff, any) :: {t_node, [any], t_node_diff} | :bump
+  def ddmerdate(orig, diff, lst, val, meta) do
+    case lst do
+      [] ->
+        case ddmerge_aux(orig, diff, val, meta) do
+          :bump -> :bump
+          {ss, dd} -> {ss, [], dd}
+        end
+
+      [key | rest] ->
+        casemap diff do
+          case Map.fetch(diff, key) do
+            {:ok, map} ->
+              # A diffben benne van a kulcs!
+              casemap orig do
+                case Map.fetch(orig, key) do
+                  {:ok, omap} ->
+                    case ddmerdate(omap, map, rest, val, meta) do
+                      :bump ->
+                        diff = Map.delete(diff, key)
+
+                        if diff == %{} do
+                          :bump
+                        else
+                          {diff, [key], :undefined}
+                        end
+
+                      {ss, ll, dd} ->
+                        {Map.put(diff, key, ss), [key | ll], dd}
+                    end
+
+                  :error ->
+                    # Mivel az origban nem volt benne, a diffnek ez az aga nem tartalmazhat torlest,
+                    # es mivel effektiv, ugyanolyan erteket sem, azaz az egyszeru update is jo.
+                    a = update_aux(map, rest, val)
+                    {Map.put(diff, key, a), [key], a}
+                end
+              else
+                # Egyszeru feluliras.
+                a = update_aux(map, rest, val)
+                {Map.put(diff, key, a), [key], a}
+              end
+
+            :error ->
+              # A diffben nincs benne.
+              # Mivel ez effektiv valtoztatas, ez az orighoz kepest is valtoztas kell legyen, kulohben nem letezne.
+              # Viszont maga a valtoztatas mar optimalis, mivel egyszer mar ossze volt vetve origgal
+              # (mivel az uj adatszerkezetnek ez a resze meg kell egyezzen origgal, hiszen diffnek nem resze)
+              # Ezert aztan egy egyszeru insert meg kell tegye.
+              a = make_from_lst(rest, val)
+              {Map.put(diff, key, a), [key], a}
+          end
+        else
+          # Diff ertek vagy torles.
+          # Itt toroltunk vagy felulirtunk egy erteket, vagy egy map-et.
+          casemap orig do
+            # Map volt, ezert azt ki kell robbantani.
+            omap = Enum.map(orig, fn {k, _} -> {k, meta} end) |> Map.new()
+
+            case Mlmap.get(orig, lst, :undefined) do
+              :undefined ->
+                # Nem volt benne az eredetiben.
+                Map.put(omap, key, make_from_lst(rest, val))
+
+              x ->
+                # Ha ez ugyanaz, mint az eredeti, akkor egyszeruen torolni kell az agat,
+                # kulonben beilleszteni.
+                if val == x do
+                  Map.delete(omap, key) >>> omap
+                  if Map.size(omap) == 0, do: :bump, else: omap
+                else
+                  Map.put(omap, key, make_from_lst(rest, val))
+                end
+            end
+          else
+            # Erteket irtunk felul vagy toroltunk, ezert csak csere a map-ra.
+            %{key => make_from_lst(rest, val)}
+          end
+          |> case do
+            :bump -> :bump
+            a -> {a, [], a}
+          end
+        end
+    end
+  end
 
   ######          ##     ## ########  ########          ##     ## ######## ########    ###             ######
   ##              ##     ## ##     ## ##     ##         ###   ### ##          ##      ## ##                ##
@@ -1923,6 +2009,21 @@ defmodule Mlmap do
       end
     end)
     |> Enum.filter(fn x -> x != :bump end)
+    |> Map.new()
+  end
+
+  @doc """
+  Csak teszteleshez! Kicserel minden `from`-ot `to`-ra, ahol `from` csak ertek (level) lehet.
+  """
+  @spec value_transform(t, any, any) :: t
+  def value_transform(s, from, to) do
+    Enum.map(s, fn {k, v} ->
+      casemap v do
+        {k, value_transform(v, from, to)}
+      else
+        if v == from, do: {k, to}, else: {k, v}
+      end
+    end)
     |> Map.new()
   end
 
