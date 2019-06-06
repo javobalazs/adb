@@ -892,8 +892,9 @@ defmodule Mlmap do
 
   @doc """
   Legfelso szint, ahol orig biztosan map, es diffek vagy map-ok, vagy legfeljebb `:undefined`.
+  Ezt csak akkor hivjuk meg, ha nem varunk :bump-ot sem.
   """
-  @spec dmerge(t, t_diff, t_diff) :: t_diff | :bump
+  @spec dmerge(t, t_diff, t_diff) :: t_diff
   def dmerge(orig, odiff, diff) do
     casemap diff do
       # Map
@@ -908,7 +909,6 @@ defmodule Mlmap do
         # Itt egy erteket cserelunk vissza egy olyan helyen, ahol eredetileg map volt.
         # Magyaran diff-ben nem lehet mar :undefined, viszont egyes elemei (vagy akar az egesz)
         # megegyezhet orig-gal, azaz ossze kell vetni vele teljesen.
-        # XXX
         diff = Map.keys(orig) |> Enum.map(fn x -> {x, :undefined} end) |> Map.new() |> Map.merge(diff)
 
         case dmerge_check(orig, diff) do
@@ -922,6 +922,10 @@ defmodule Mlmap do
       # Itt odiff nem lehet :undefined, mivel diff effektiv.
       # Viszont ezen a ponton orig letezik, tehat torolni kell.
       :undefined
+    end
+    |> case do
+      :bump -> %{}
+      x -> x
     end
   end
 
