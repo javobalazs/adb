@@ -1556,7 +1556,7 @@ defmodule Mlmap do
 
               case dd do
                 :bump -> {s, true, diff, dchg}
-                _ -> {s, true, Map.put(diff, k, :undefined), true}
+                _ -> {s, true, Map.put(diff, k, dd), true}
               end
           end
 
