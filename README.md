@@ -241,3 +241,11 @@ def deps do
   ]
 end
 ```
+
+```elixir
+def deps do
+  [
+    {:adb, git: "ssh://git@git.gnifanip.info:6407/balazs/adb.git", tag: "0.2.10"},
+  ]
+end
+```
