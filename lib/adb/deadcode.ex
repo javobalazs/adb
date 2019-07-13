@@ -228,7 +228,7 @@
   #         stage = s.stage |> mulmap_flt
   #         s = %{s| stage: %{}}
   #
-  #         if Map.size(stage) == 0 do
+  #         if map_size(stage) == 0 do
   #           s
   #         else
   #           diffs = diffs |> Enum.filter(fn {k, _d} -> k >= last_mod end) |> Enum.map(fn {k, d} -> {k, mulmap_mrg(d, stage) |> mulmap_flt} end)
@@ -694,7 +694,7 @@
   #
   #         case val do
   #           nil -> mm
-  #           _ -> if Map.size(mp) == 0, do: Map.delete(mm, map), else: Map.put(mm, map, mp)
+  #           _ -> if map_size(mp) == 0, do: Map.delete(mm, map), else: Map.put(mm, map, mp)
   #         end
   #     end
   #   end
@@ -745,7 +745,7 @@
   #     |> Enum.map(fn {map, mp} ->
   #       {map, mp |> Enum.filter(fn {_k, {o, v}} -> o != v end) |> Map.new()}
   #     end)
-  #     |> Enum.filter(fn {_map, mp} -> Map.size(mp) != 0 end)
+  #     |> Enum.filter(fn {_map, mp} -> map_size(mp) != 0 end)
   #     |> Map.new()
   #   end
   #
@@ -1223,7 +1223,7 @@
 #     diff12 = stage.stage12
 #
 #     # Tortent-e valtozas?
-#     if Map.size(diff1) != 0 or Map.size(diff2) != 0 or Map.size(diff12) != 0 do
+#     if map_size(diff1) != 0 or map_size(diff2) != 0 or map_size(diff12) != 0 do
 #       ver_num = if real, do: ver_num_delete(s.ver_num, rule_time), else: s.ver_num
 #       ver_num = ver_num_delete(ver_num, last)
 #       ver_num_diff = if real, do: 2, else: 1

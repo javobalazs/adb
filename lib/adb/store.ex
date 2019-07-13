@@ -179,10 +179,10 @@ defmodule Store do
     keep = real and stage.keep
 
     # Tortent-e valtozas?
-    # if Map.size(diff1) != 0 or Map.size(diff2) != 0 or Map.size(diff12) != 0 do
+    # if map_size(diff1) != 0 or map_size(diff2) != 0 or map_size(diff12) != 0 do
     # Felesleges az 1-re es 12-re ellenorizni, ha azokban van valtozas, akkor az 1-ben is.
 
-    if diff1 == :undefined or Map.size(diff1) != 0 do
+    if diff1 == :undefined or map_size(diff1) != 0 do
       ver_num = if keep, do: ver_num_delete(s.ver_num, rule_time), else: s.ver_num
       ver_num = ver_num_delete(ver_num, last)
       lastp1 = last + 1

@@ -782,7 +782,7 @@ defmodule Mlmap do
                 # kulonben beilleszteni.
                 if val == x do
                   Map.delete(omap, key) >>> omap
-                  if Map.size(omap) == 0, do: :bump, else: omap
+                  if map_size(omap) == 0, do: :bump, else: omap
                 else
                   Map.put(omap, key, make_from_lst(rest, val))
                 end
@@ -823,7 +823,7 @@ defmodule Mlmap do
                   Map.delete(diff, key)
               end >>> diff
 
-              if Map.size(diff) == 0, do: :bump, else: diff
+              if map_size(diff) == 0, do: :bump, else: diff
             else
               # Az eredetiben itt ertek volt.
               # A valtoztatas effektiv, ezert magaban a diffben kell valtoztatni.
@@ -887,7 +887,7 @@ defmodule Mlmap do
       end
     end) >>> odiff
 
-    if Map.size(odiff) == 0, do: :bump, else: odiff
+    if map_size(odiff) == 0, do: :bump, else: odiff
   end
 
   @doc """
@@ -1056,7 +1056,7 @@ defmodule Mlmap do
       end
     end) >>> {dd, chg}
 
-    if chg, do: if(Map.size(dd) == 0, do: :undefined, else: dd), else: :bump
+    if chg, do: if(map_size(dd) == 0, do: :undefined, else: dd), else: :bump
   end
 
   @spec dmerge_check_aux(t_node, t_node_diff) :: :bump | t_node_diff
@@ -1142,7 +1142,7 @@ defmodule Mlmap do
                 # kulonben beilleszteni.
                 if val == x do
                   Map.delete(omap, key) >>> omap
-                  if Map.size(omap) == 0, do: :bump, else: omap
+                  if map_size(omap) == 0, do: :bump, else: omap
                 else
                   Map.put(omap, key, make_from_lst(rest, val))
                 end
@@ -1216,7 +1216,7 @@ defmodule Mlmap do
       end
     end) >>> {odiff, ndiff}
 
-    if Map.size(odiff) == 0, do: :bump, else: {odiff, ndiff}
+    if map_size(odiff) == 0, do: :bump, else: {odiff, ndiff}
   end
 
   @doc """
@@ -1325,7 +1325,7 @@ defmodule Mlmap do
       end
     end) >>> {dd, chg}
 
-    if chg, do: if(Map.size(dd) == 0, do: :undefined, else: dd), else: :bump
+    if chg, do: if(map_size(dd) == 0, do: :undefined, else: dd), else: :bump
   end
 
   @spec ddmerge_check_aux(t_node, t_node_diff, any) :: :bump | t_node_diff
@@ -1423,7 +1423,7 @@ defmodule Mlmap do
                 # kulonben beilleszteni.
                 if val == x do
                   Map.delete(omap, key) >>> omap
-                  if Map.size(omap) == 0, do: :bump, else: omap
+                  if map_size(omap) == 0, do: :bump, else: omap
                 else
                   Map.put(omap, key, make_from_lst(rest, val))
                 end
@@ -1466,7 +1466,7 @@ defmodule Mlmap do
       _ ->
         Enum.reduce(s, {[], []}, fn {k, v}, {droplist, chglist} = res ->
           ucasemap v do
-            if Map.size(v) == 0 do
+            if map_size(v) == 0 do
               {[k | droplist], chglist}
             else
               case snormalize(v) do
@@ -1490,12 +1490,12 @@ defmodule Mlmap do
 
           {droplist, []} ->
             s = Map.drop(s, droplist)
-            if Map.size(s) == 0, do: :undefined, else: s
+            if map_size(s) == 0, do: :undefined, else: s
 
           {droplist, chglist} ->
             s = Map.drop(s, droplist)
             chgmap = Map.new(chglist)
-            if Map.size(s) == 0, do: chgmap, else: Map.merge(s, chgmap)
+            if map_size(s) == 0, do: chgmap, else: Map.merge(s, chgmap)
         end
     end
   end
@@ -1577,8 +1577,8 @@ defmodule Mlmap do
 
     # Map -> Map eredmenye
     Util.wife :bump, schg do
-      Util.wife {:undefined, :undefined}, Map.size(s) != 0 do
-        Util.wife :bump, Map.size(diff) != 0 do
+      Util.wife {:undefined, :undefined}, map_size(s) != 0 do
+        Util.wife :bump, map_size(diff) != 0 do
           {s, if(dchg, do: diff, else: :bump)}
         end
       end
@@ -1988,7 +1988,7 @@ defmodule Mlmap do
         {:ok, v2} ->
           ucasemap v do
             casemap v2 do
-              if Map.size(v) == 0 do
+              if map_size(v) == 0 do
                 # Helybenhagyas
                 :bump
               else
