@@ -10,7 +10,7 @@ defmodule Util.Pdecoder do
 
   Hasznalat:
   ```
-  use Pdecoder, fields: fl, type: tp, only_fields: only_f
+  use Util.Pdecoder, fields: fl, type: tp, only_fields: only_f
   ```
 
   Ha a defaultot akarjuk hasznalni csak, akkor:
