@@ -268,7 +268,7 @@ defmodule Util do
   """
   defmacro arrow_assignment() do
     quote do
-      defmacro expr >>> var do
+      defmacrop expr >>> var do
         quote do
           unquote(var) = unquote(expr)
         end
