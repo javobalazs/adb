@@ -256,7 +256,7 @@ defmodule Store do
 
   @spec individual_burst(t, Rule.burst()) :: t
   def individual_burst(s, burst) do
-    s.rules |> Enum.filter(fn {_n, m} -> m.burst == burst end) |> Enum.map(fn {n, _m} -> n end) |> Enum.reduce(s, fn n, acc -> execute(acc, n) end)
+    s.rules |> Enum.sort() |> Enum.filter(fn {_n, m} -> m.burst == burst end) |> Enum.map(fn {n, _m} -> n end) |> Enum.reduce(s, fn n, acc -> execute(acc, n) end)
   end
 
   @spec full_burst(t, Rule.burst()) :: t
