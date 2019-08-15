@@ -121,7 +121,7 @@ defmodule Util.Pdecoder do
             if only_f do
               quote do
                 if surplus != %{} do
-                  Util.wf(SURPLUS_FIELDS)
+                  Util.wf("SURPLUS_FIELDS: #{inspect(surplus)}")
                 else
                   check_callback(Map.merge(%__MODULE__{}, Map.new(x)), not_found, surplus)
                 end
