@@ -237,7 +237,7 @@ GlobalGenerator.fordit_merge(ValamilyenModul, %{param4: :nemtudom, param2: "maki
 ```elixir
 def deps do
   [
-    {:adb, git: "git@github.com:javobalazs/adb.git", tag: "0.2.10"},
+    {:adb, git: "git@github.com:javobalazs/adb.git", tag: "0.2.12"},
   ]
 end
 ```
@@ -245,7 +245,61 @@ end
 ```elixir
 def deps do
   [
-    {:adb, git: "ssh://git@git.gnifanip.info:6407/balazs/adb.git", tag: "0.2.10"},
+    {:adb, git: "ssh://git@git.gnifanip.info:6407/balazs/adb.git", tag: "0.2.12"},
   ]
 end
+```
+
+# Tervek
+
+```
+{
+  ts ,|
+  get(eq, heartbeat, ts,),
+  {
+    iam, payload ,|
+
+  ,},
+,},
+
+\all, ts \assert
+\and
+  , \pre, get, eq, heartbeat, ts
+  , \all, iam, payload \assert
+    \and
+      , \pre, get, ciregister, iam, payload
+      , \pre,
+
+
+all , ts assert and , get,eq, heartbeat, ts
+
+
+
+* ts
++ , get
+  , \step
+  , eq
+  , heartbeat
+  , ts
++ * iam
+  * payload
+  + , get
+    , \step
+    , ciregister
+    , iam
+    , payload
+  + - + , =        , payload        , false
+      + , get        , \step        , ciregister'        , iam        , :undefined
+      + , get, \step, ciregister', iam, :undefined
+      + , get
+        , \step
+        , ciregister'
+        , iam
+        , :undefined
+    - + , =
+        , payload
+        , { seq
+          { cseq
+      + xxx
+
 ```
