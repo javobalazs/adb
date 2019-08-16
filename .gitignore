@@ -25,3 +25,4 @@ adb-*.tar
 /.elixir_ls
 /log
 /tzdata
+/Mnesia.nonode@nohost
