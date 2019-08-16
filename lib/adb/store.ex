@@ -363,7 +363,7 @@ defmodule Store do
     end
   end
 
-  @spec add_to_queue(t, [{String.t(), any, any}], any) :: t
+  @spec add_to_queue(t, [any], any) :: t
   def add_to_queue(s, lst, val), do: %{s | msgqueue: [{lst, val, nil} | s.msgqueue], qlen: s.qlen + 1}
 
   @spec set_pid(t, String.t()) :: t
