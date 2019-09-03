@@ -34,8 +34,7 @@ defmodule Adb.MixProject do
       # {:cbt, git: "git@github.com:javobalazs/cbt.git", tag: "1.2.3"},
       {:timex, "~> 3.5"},
       {:tzdata, "~> 0.5"},
-      {:logger_file_backend, "~> 0.0.10"},
-      #{:nimble_parsec, "~> 0.2"}
+      {:logger_file_backend, "~> 0.0.10"}
     ]
   end
 end
