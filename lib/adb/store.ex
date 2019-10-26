@@ -96,7 +96,7 @@ defmodule Store do
 
         # Volt-e egyaltalan valtozas?
         if last_mod_check do
-          execute_step(s, name, rule_time, rule.binding, rule.function, true, rule.burst)
+          execute_step(s, name, rule_time, rule.function, true, rule.burst)
         else
           ver_num_bump(s, last, name, rule_time)
         end
@@ -106,8 +106,8 @@ defmodule Store do
     # def execute
   end
 
-  @spec execute_step(t, String.t(), Integer.t(), Rule.binding(), Rule.functionx(), Boolean.t(), Rule.burst()) :: t
-  def execute_step(s, name, rule_time, binding, function, real, burst) do
+  @spec execute_step(t, String.t(), Integer.t(), Rule.functionx(), Boolean.t(), Rule.burst()) :: t
+  def execute_step(s, name, rule_time, function, real, burst) do
     last = s.last
     # Valtozok kiszedese.
     internal1 = s.internal1
@@ -150,7 +150,7 @@ defmodule Store do
     # end
 
     # Elokeszites...
-    stage = Stage.mconstructor(orig1, orig2, orig12, diff1, diff2, diff12, name, rule_time, binding, last, internal1, internal2, internal12, last_mod1, last_mod2, last_mod12, real, s.pid, burst)
+    stage = Stage.mconstructor(orig1, orig2, orig12, diff1, diff2, diff12, name, rule_time, last, internal1, internal2, internal12, last_mod1, last_mod2, last_mod12, real, s.pid, burst)
 
     # Tenyleges vegrehajtas! Utana a valtozasok kiszedese.
     # orig -diff-> start -stage-> internal
@@ -276,7 +276,6 @@ defmodule Store do
         %{s | msgqueue: [], qlen: 0},
         "input",
         0,
-        %{},
         fn stage ->
           stage = Stage.put(stage, lst)
           # Logger.debug("stage: #{inspect(stage)}")
@@ -328,7 +327,6 @@ defmodule Store do
   @spec install(
           t,
           name :: String.t(),
-          binding :: Rule.binding_list(),
           observe1 :: [String.t()],
           observe2 :: [String.t()],
           observe12 :: [{String.t(), String.t()}],
@@ -338,12 +336,12 @@ defmodule Store do
           constructor :: Rule.functionx() | nil,
           destructor :: Rule.functionx() | nil
         ) :: t
-  def install(s, name, binding, observe1, observe2, observe12, kernel, burst, function, constructor \\ nil, destructor \\ nil) do
-    rule = Rule.constructor(name, binding, observe1, observe2, observe12, kernel, burst, function, constructor, destructor)
+  def install(s, name, observe1, observe2, observe12, kernel, burst, function, constructor \\ nil, destructor \\ nil) do
+    rule = Rule.constructor(name, observe1, observe2, observe12, kernel, burst, function, constructor, destructor)
     first = Map.put(s.first, burst, 0)
     rules = Map.put(s.rules, name, rule)
     s = %{s | first: first, rules: rules}
-    Util.wife(s, constructor != nil, do: execute_step(s, name, 0, rule.binding, constructor, true, :checkin))
+    Util.wife(s, constructor != nil, do: execute_step(s, name, 0, constructor, true, :checkin))
   end
 
   @spec uninstall(t, String.t()) :: t
@@ -359,7 +357,7 @@ defmodule Store do
       ver_num = ver_num_delete(s.ver_num, rule_time)
       s = %{s | rules: rules, rules_ver: rules_ver, ver_num: ver_num}
       destructor = rule.destructor
-      Util.wife(s, destructor != nil, do: execute_step(s, name, rule_time, rule.binding, destructor, false, :checkin))
+      Util.wife(s, destructor != nil, do: execute_step(s, name, rule_time, destructor, false, :checkin))
     end
   end
 

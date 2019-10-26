@@ -42,7 +42,6 @@ defmodule Stage do
             current12: nil,
             name: nil,
             rule_ver: 0,
-            binding: nil,
             last: 0,
             internal1: nil,
             internal2: nil,
@@ -80,7 +79,6 @@ defmodule Stage do
           current12: Mlmap.t(),
           name: String.t(),
           rule_ver: Integer.t(),
-          binding: Rule.binding(),
           last: Integer.t(),
           internal1: Mlmap.t(),
           internal2: Mlmap.t(),
@@ -122,7 +120,7 @@ defmodule Stage do
   ##              ##    ## ##     ## ##   ### ##    ##    ##    ##    ##  ##     ## ##    ##    ##    ##     ## ##    ##               ##
   ######           ######   #######  ##    ##  ######     ##    ##     ##  #######   ######     ##     #######  ##     ##          ######
 
-  defmacro mconstructor(orig1, orig2, orig12, diff1, diff2, diff12, name, rule_ver, binding, last, internal1, internal2, internal12, last_mod1, last_mod2, last_mod12, real, pid, burst) do
+  defmacro mconstructor(orig1, orig2, orig12, diff1, diff2, diff12, name, rule_ver, last, internal1, internal2, internal12, last_mod1, last_mod2, last_mod12, real, pid, burst) do
     mod = __MODULE__
 
     quote do
@@ -135,7 +133,6 @@ defmodule Stage do
         diff12: unquote(diff12),
         name: unquote(name),
         rule_ver: unquote(rule_ver),
-        binding: unquote(binding),
         last: unquote(last),
         internal1: unquote(internal1),
         internal2: unquote(internal2),
@@ -163,7 +160,6 @@ defmodule Stage do
           diff12 :: Mulmap.t_diff(),
           name :: Mulmap.iden(),
           rule_ver :: Integer.t(),
-          binding :: Rule.binding(),
           last :: Integer.t(),
           internal1 :: Mulmap.t(),
           internal2 :: Mulmap.t(),
@@ -175,8 +171,8 @@ defmodule Stage do
           pid :: String.t(),
           burst :: Rule.burst()
         ) :: t
-  def constructor(orig1, orig2, orig12, diff1, diff2, diff12, name, rule_ver, binding, last, internal1, internal2, internal12, last_mod1, last_mod2, last_mod12, real, pid, burst) do
-    mconstructor(orig1, orig2, orig12, diff1, diff2, diff12, name, rule_ver, binding, last, internal1, internal2, internal12, last_mod1, last_mod2, last_mod12, real, pid, burst)
+  def constructor(orig1, orig2, orig12, diff1, diff2, diff12, name, rule_ver, last, internal1, internal2, internal12, last_mod1, last_mod2, last_mod12, real, pid, burst) do
+    mconstructor(orig1, orig2, orig12, diff1, diff2, diff12, name, rule_ver, last, internal1, internal2, internal12, last_mod1, last_mod2, last_mod12, real, pid, burst)
   end
 
   @spec get(t, [any], any) :: any
