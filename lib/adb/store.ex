@@ -35,7 +35,7 @@ defmodule Store do
             internal2: %{},
             internal12: %{},
             pid: nil,
-            msgqueue: [],
+            input: [],
             qlen: 0
 
   @type t :: %__MODULE__{
@@ -57,7 +57,7 @@ defmodule Store do
           internal2: Mlmap.t(),
           internal12: Mlmap.t(),
           pid: String.t(),
-          msgqueue: [{String.t(), any, any}],
+          input: [{[any], any, any}],
           qlen: Integer.t()
         }
 
@@ -223,10 +223,10 @@ defmodule Store do
       Util.wife(s, keep, do: ver_num_bump(s, last, name, rule_time))
     end >>> s
 
-    # Az msgqueue kezelese fuggetlen attol, hogy valtoztatott-e vagy `!keep`,
+    # Az input kezelese fuggetlen attol, hogy valtoztatott-e vagy `!keep`,
     # mivel siman lehet, hogy a hibas imperativ muveletet akarja jelezni csak,
     # es a hiba miatt nem volt valtoztatas, es az ujracsinalas miatt a verziot sem akarja novelni.
-    Util.wife(s, burst == :checkout, do: %{s | msgqueue: stage.msgqueue ++ s.msgqueue, qlen: stage.qlen + s.qlen})
+    Util.wife(s, burst == :checkout, do: %{s | input: stage.msgqueue ++ s.input, qlen: stage.qlen + s.qlen})
   end
 
   @spec ver_num_bump(t, Integer.t(), String.t(), Integer.t()) :: t
@@ -269,11 +269,13 @@ defmodule Store do
   @spec cycle(t) :: t
   def cycle(s) do
     last = s.last
-    lst = s.msgqueue |> Enum.reverse()
+    # lst = s.input |> Enum.reverse()
+    lst = s.input
+    qlen = s.qlen
 
-    Util.wife s, lst != [] do
+    Util.wife s, qlen > 0 do
       execute_step(
-        %{s | msgqueue: [], qlen: 0},
+        %{s | input: [], qlen: 0},
         "input",
         0,
         fn stage ->
@@ -296,6 +298,21 @@ defmodule Store do
     # Logger.info("sep")
     # Logger.debug("store_cpu: #{inspect(s)}")
     s = full_burst(s, :checkout)
+
+    Util.wife s, qlen > 0 do
+      execute_step(
+        s,
+        "output_and_cleanup",
+        0,
+        fn stage ->
+          stage = Stage.put(stage, ["input"], :undefined, nil)
+          # Logger.debug("stage: #{inspect(stage)}")
+          stage
+        end,
+        false,
+        :checkout
+      )
+    end >>> s
 
     Util.wife s, last < s.last do
       # Felesleges verziok kiszedese
@@ -361,8 +378,11 @@ defmodule Store do
     end
   end
 
-  @spec add_to_queue(t, [any], any) :: t
-  def add_to_queue(s, lst, val), do: %{s | msgqueue: [{lst, val, nil} | s.msgqueue], qlen: s.qlen + 1}
+  @spec add_to_queue(t, any) :: t
+  def add_to_queue(s, msg) do
+    qlen = s.qlen
+    %{s | input: [{["input", qlen], msg, nil} | s.input], qlen: qlen + 1}
+  end
 
   @spec set_pid(t, String.t()) :: t
   def set_pid(s, pid), do: %{s | pid: pid}

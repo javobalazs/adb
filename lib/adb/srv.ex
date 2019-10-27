@@ -42,7 +42,7 @@ defmodule Srv do
             # {:noreply, s}
 
           _ ->
-            {:noreply, handle_info_callback(s, msg), 0}
+            {:noreply, Store.add_to_queue(s, msg), 0}
         end
 
         # def handle_info
@@ -53,12 +53,7 @@ defmodule Srv do
       #   {:ok, s}
       # end
 
-      @spec handle_info_callback(Store.t(), any) :: Store.t()
-      # def handle_info_callback(s, _msg) do
-      #   s
-      # end
-
-      # defoverridable init_callback: 2, handle_info_callback: 2
+      # defoverridable init_callback: 2
 
       # quote
     end
