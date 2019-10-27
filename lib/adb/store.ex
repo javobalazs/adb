@@ -29,6 +29,7 @@ defmodule Store do
             rules_ver: %{},
             ver_num: %{1 => 1},
             rules: %{},
+            rules_list: [],
             last: 1,
             first: %{},
             internal1: %{},
@@ -51,6 +52,7 @@ defmodule Store do
           rules_ver: %{String.t() => Integer.t()},
           ver_num: %{Integer.t() => Integer.t()},
           rules: %{String.t() => Rule.t()},
+          rules_list: [String.t()],
           last: Integer.t(),
           first: %{Rule.burst() => Integer.t()},
           internal1: Mlmap.t(),
@@ -357,7 +359,8 @@ defmodule Store do
     rule = Rule.constructor(name, observe1, observe2, observe12, kernel, burst, function, constructor, destructor)
     first = Map.put(s.first, burst, 0)
     rules = Map.put(s.rules, name, rule)
-    s = %{s | first: first, rules: rules}
+    rules_list = rules |> Enum.sort()
+    s = %{s | first: first, rules: rules, rules_list: rules_list}
     Util.wife(s, constructor != nil, do: execute_step(s, name, 0, constructor, true, :checkin))
   end
 
@@ -368,11 +371,12 @@ defmodule Store do
 
     Util.wife s, rule != nil do
       rules = Map.delete(rules, name)
+      rules_list = rules |> Enum.sort()
       rules_ver = s.rules_ver
       rule_time = Map.get(rules_ver, name, 0)
       rules_ver = Map.delete(rules_ver, name)
       ver_num = ver_num_delete(s.ver_num, rule_time)
-      s = %{s | rules: rules, rules_ver: rules_ver, ver_num: ver_num}
+      s = %{s | rules: rules, rules_ver: rules_ver, ver_num: ver_num, rules_list: rules_list}
       destructor = rule.destructor
       Util.wife(s, destructor != nil, do: execute_step(s, name, rule_time, destructor, false, :checkin))
     end
