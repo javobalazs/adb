@@ -277,7 +277,7 @@ defmodule Store do
 
     Util.wife s, qlen > 0 do
       execute_step(
-        %{s | input: [], qlen: 0},
+        s,
         "input",
         0,
         fn stage ->
@@ -301,13 +301,15 @@ defmodule Store do
     # Logger.debug("store_cpu: #{inspect(s)}")
     s = full_burst(s, :checkout)
 
-    Util.wife s, qlen > 0 do
+    input_result = Mlmap.get(s.internal1, ["input_result"], nil)
+
+    Util.wife s, qlen > 0 or input_result != nil do
       execute_step(
         s,
         "output_and_cleanup",
         0,
         fn stage ->
-          stage = Stage.put(stage, ["input"], :undefined, nil)
+          stage = Stage.put(stage, [{["input"], :undefined, nil}, {["input_result"], :undefined, nil}])
           # Logger.debug("stage: #{inspect(stage)}")
           stage
         end,
@@ -323,6 +325,13 @@ defmodule Store do
       origs2 = s.origs2 |> Enum.filter(fn {k, _d} -> Map.get(ver_num, k, 0) > 0 end)
       origs12 = s.origs12 |> Enum.filter(fn {k, _d} -> Map.get(ver_num, k, 0) > 0 end)
       %{s | origs1: Map.new(origs1), origs2: Map.new(origs2), origs12: Map.new(origs12)}
+    end >>> s
+
+    if input_result != nil do
+      Mlmap.reducep2(input_result, {0, []}, fn _rule, _uuid, res, {ql, lst} -> {ql + 1, [{["input", ql], res, nil} | lst]} end) >>> {ql, inp}
+      %{s | input: inp, qlen: ql}
+    else
+      %{s | input: [], qlen: 0}
     end >>> s
 
     # Logger.info("sep")
