@@ -1,6 +1,6 @@
 defmodule Adb.MixProject do
   use Mix.Project
-  @vsn "0.2.12"
+  @vsn "0.3.0"
 
   def project do
     [
@@ -32,8 +32,8 @@ defmodule Adb.MixProject do
       # {:dep_from_hexpm, "~> 0.3.0"},
       # {:dep_from_git, git: "https://github.com/elixir-lang/my_dep.git", tag: "0.1.0"},
       # {:cbt, git: "git@github.com:javobalazs/cbt.git", tag: "1.2.3"},
-      {:timex, "~> 3.5"},
-      {:tzdata, "~> 0.5"},
+      {:timex, "~> 3.6"},
+      # {:tzdata, "~> 0.5"},
       {:logger_file_backend, "~> 0.0.10"}
     ]
   end
