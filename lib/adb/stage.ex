@@ -52,8 +52,6 @@ defmodule Stage do
             real: true,
             keep: true,
             pid: nil,
-            msgqueue: [],
-            qlen: 0,
             burst: :cpu
 
   @typedoc """
@@ -89,8 +87,6 @@ defmodule Stage do
           real: Boolean.t(),
           keep: Boolean.t(),
           pid: String.t(),
-          msgqueue: [{String.t(), any, any}],
-          qlen: Integer.t(),
           burst: Rule.burst()
         }
 
@@ -191,13 +187,6 @@ defmodule Stage do
   """
   @spec set_keep(t, Boolean.t()) :: t
   def set_keep(s, keep), do: %{s | keep: keep}
-
-  @doc """
-  Ha imperativ output-muvelet soran hiba keletkezik a checkout-ban,
-  azaz a mi szempontunkbol azonnali input, akkor itt kell jelezni.
-  """
-  @spec add_to_queue(t, [{String.t(), any, any}], any) :: t
-  def add_to_queue(s, lst, val), do: %{s | msgqueue: [{lst, val, nil} | s.msgqueue], qlen: s.qlen + 1}
 
   ######          ########  ##     ## ########          ######
   ##              ##     ## ##     ##    ##                 ##

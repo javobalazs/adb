@@ -225,10 +225,7 @@ defmodule Store do
       Util.wife(s, keep, do: ver_num_bump(s, last, name, rule_time))
     end >>> s
 
-    # Az input kezelese fuggetlen attol, hogy valtoztatott-e vagy `!keep`,
-    # mivel siman lehet, hogy a hibas imperativ muveletet akarja jelezni csak,
-    # es a hiba miatt nem volt valtoztatas, es az ujracsinalas miatt a verziot sem akarja novelni.
-    Util.wife(s, burst == :checkout, do: %{s | input: stage.msgqueue ++ s.input, qlen: stage.qlen + s.qlen})
+    s
   end
 
   @spec ver_num_bump(t, Integer.t(), String.t(), Integer.t()) :: t
