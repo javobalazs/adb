@@ -306,7 +306,10 @@ defmodule Store do
         "output_and_cleanup",
         0,
         fn stage ->
-          stage = Stage.put(stage, [{["input"], :undefined, nil}, {["input_result"], :undefined, nil}])
+          Stage.map(stage, ["input"], fn seq, _b -> {["input", seq], :undefined, nil} end) >>> ops1
+          Stage.map2(stage, ["input_result"], fn rule, uuid, _b -> {["input_result", rule, uuid], :undefined, nil} end) >>> ops2
+          # stage = Stage.put(stage, [{["input"], :undefined, nil}, {["input_result"], :undefined, nil}])
+          stage = Stage.put(stage, ops1 ++ ops2)
           # Logger.debug("stage: #{inspect(stage)}")
           stage
         end,

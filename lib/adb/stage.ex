@@ -214,6 +214,8 @@ defmodule Stage do
 
         case lst do
           [map, key | rest] ->
+            # XXX HIBA sajnos ha nem dupla ez, attol meg lehet, hogy hozza kell nyulni a dupla vagy forditott indexhez.
+            # XXX Pelda: ["x", "y"] => "z", ahol "y" fut. Ha ezek utan ["x"] => :undefined, akkor az osszes "y"-t torolni kell.
             lst12 = [{map, key} | rest]
             # Itt ennek jonak kell lennie, nem lehet :undefined vagy :bump...
             {internal12, lst12} = Mlmap.supdate(s.internal12, lst12, val)
