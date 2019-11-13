@@ -247,6 +247,9 @@ defmodule Stage do
     end
   end
 
+  @spec pipeput([{[any], any, iden}], t) :: t
+  def pipeput(lstlst, s), do: put(s, lstlst)
+
   @spec put(t, [{[any], any, iden}]) :: t
   def put(s, lstlst) do
     # orig -diff-> current -stage-> internal

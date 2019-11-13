@@ -272,21 +272,12 @@ defmodule Store do
     lst = s.input
     qlen = s.qlen
 
+    # "input" tenyleges beemelese
     Util.wife s, qlen > 0 do
-      execute_step(
-        s,
-        "input",
-        0,
-        fn stage ->
-          stage = Stage.put(stage, lst)
-          # Logger.debug("stage: #{inspect(stage)}")
-          stage
-        end,
-        false,
-        :checkin
-      )
+      execute_step(s, "input", 0, fn stage -> Stage.put(stage, lst) end, false, :checkin)
     end >>> s
 
+    # A vegrehajtasok
     # Logger.info("sep")
     # Logger.debug("store: #{inspect(s)}")
     # A tobbi `:checkin`
@@ -299,23 +290,28 @@ defmodule Store do
     s = full_burst(s, :checkout)
 
     input_result = Mlmap.get(s.internal1, ["input_result"], nil)
+    output = Mlmap.get(s.internal1, ["output"], nil)
 
-    Util.wife s, qlen > 0 or input_result != nil do
+    # "input" torlese, ha kell
+    Util.wife s, qlen > 0 do
+      execute_step(s, "input_cleanup", 0, fn stage -> Stage.map(stage, ["input"], fn seq, _b -> {["input", seq], :undefined, nil} end) |> Stage.pipeput(stage) end, false, :checkout)
+    end >>> s
+
+    # "input_result" torlese, ha kell
+    Util.wife s, input_result != nil do
       execute_step(
         s,
-        "output_and_cleanup",
+        "input_result_cleanup",
         0,
-        fn stage ->
-          Stage.map(stage, ["input"], fn seq, _b -> {["input", seq], :undefined, nil} end) >>> ops1
-          Stage.map2(stage, ["input_result"], fn rule, uuid, _b -> {["input_result", rule, uuid], :undefined, nil} end) >>> ops2
-          # stage = Stage.put(stage, [{["input"], :undefined, nil}, {["input_result"], :undefined, nil}])
-          stage = Stage.put(stage, ops1 ++ ops2)
-          # Logger.debug("stage: #{inspect(stage)}")
-          stage
-        end,
+        fn stage -> Mlmap.mapp2(input_result, fn rule, uuid, _b -> {["input_result", rule, uuid], :undefined, nil} end) |> Stage.pipeput(stage) end,
         false,
         :checkout
       )
+    end >>> s
+
+    # "output" torlese, ha kell
+    Util.wife s, output != nil do
+      execute_step(s, "output_cleanup", 0, fn stage -> Mlmap.mapp2(output, fn rule, uuid, _b -> {["output", rule, uuid], :undefined, nil} end) |> Stage.pipeput(stage) end, false, :checkout)
     end >>> s
 
     Util.wife s, last < s.last do
@@ -327,12 +323,34 @@ defmodule Store do
       %{s | origs1: Map.new(origs1), origs2: Map.new(origs2), origs12: Map.new(origs12)}
     end >>> s
 
-    if input_result != nil do
-      Mlmap.reducep2(input_result, {0, []}, fn _rule, _uuid, res, {ql, lst} -> {ql + 1, [{["input", ql], res, nil} | lst]} end) >>> {ql, inp}
-      %{s | input: inp, qlen: ql}
-    else
-      %{s | input: [], qlen: 0}
-    end >>> s
+    # "output" vegrehajtasa
+    Util.wife [], output != nil do
+      Mlmap.mapp2(output, fn _rule, _uuid, call ->
+        case call do
+          {:call, mod, fun, args} ->
+            # Fire and forget
+            apply(mod, fun, args)
+            :bump
+
+          {:store, mod, fun, args, keyword, params} ->
+            # Amikor tarolni kell valamit
+            {keyword, params, apply(mod, fun, args)}
+
+        end
+      end)
+    end >>> rs
+
+    # Az "input_result" beolvasztasa, ha kell
+    Util.wife {0, []}, input_result != nil do
+      Mlmap.reducep2(input_result, {0, []}, fn _rule, _uuid, res, {ql, lst} -> {ql + 1, [{["input", ql], res, nil} | lst]} end)
+    end >>> xx
+
+    # Az "rs" beolvasztasa, ha kell
+    Util.wife xx, rs != [] do
+      Enum.reduce(rs, xx, fn res, {ql, lst} -> {ql + 1, [{["input", ql], res, nil} | lst]} end)
+    end >>> {ql, inp}
+
+    %{s | input: inp, qlen: ql} >>> s
 
     # Logger.info("sep")
     # Logger.debug("store_checkout: #{inspect(s)}")
