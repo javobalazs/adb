@@ -149,8 +149,8 @@ defmodule Util do
           t
       catch
         :badmatch, x -> x
-      end |>
-      case do
+      end
+      |> case do
         unquote(branches)
       end
     end
