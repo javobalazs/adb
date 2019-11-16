@@ -332,10 +332,13 @@ defmodule Store do
             apply(mod, fun, args)
             :bump
 
+          {:send, pid, put_data} ->
+            send(pid, {:store, put_data})
+            :bump
+
           {:store, mod, fun, args, keyword, params} ->
             # Amikor tarolni kell valamit
             {keyword, params, apply(mod, fun, args)}
-
         end
       end)
     end >>> rs
@@ -411,8 +414,15 @@ defmodule Store do
 
   @spec add_to_queue(t, any) :: t
   def add_to_queue(s, msg) do
-    qlen = s.qlen
-    %{s | input: [{["input", qlen], msg, nil} | s.input], qlen: qlen + 1}
+    case msg do
+      {:store, put_data} ->
+        # `put_data = {path, obj, iden}`
+        %{s | input: [put_data | s.input], qlen: s.qlen + 1}
+
+      _ ->
+        qlen = s.qlen
+        %{s | input: [{["input", qlen], msg, nil} | s.input], qlen: qlen + 1}
+    end
   end
 
   @spec set_pid(t, String.t()) :: t
