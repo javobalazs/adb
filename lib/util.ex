@@ -256,7 +256,7 @@ defmodule Util do
   Hatravetett ertekadasi operatort definial.
   ```elixir
   defmodule Valami do
-    require Uitl
+    require Util
     Util.arrow_assignment()
     def shitty_function(x, y, z) do
       # Ezek ekvivalensek.
@@ -272,6 +272,10 @@ defmodule Util do
         quote do
           unquote(var) = unquote(expr)
         end
+      end
+
+      defmacrop mpath do
+        __MODULE__ |> Module.split() |> Enum.reverse() |> tl |> Enum.reverse() |> Module.concat()
       end
     end
   end
